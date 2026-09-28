@@ -648,8 +648,10 @@ LABEL_30:
       {
         if ( v35 > -0.005 )
         {
-          v43 = v19;
+          /* v42 before v43: the .so computes the side index first, then copies the
+           * spilled v19 (gcc 2.7 does not schedule, so this is statement order). */
           v42 = v11 + a1->firstside;
+          v43 = v19;
         }
         if ( v35 > 0.005 )
         {
@@ -768,23 +770,32 @@ typedef struct bsp_model_tracestack_s {
   int next;   /* raw 32-bit pointer in the original DLL; offset-encoded on 64-bit */
 } bsp_model_tracestack_t;
 
-typedef struct bsp_model_plane_sidecache_s {
-  int sideflags[4];
-  float offsets[2];
-} bsp_model_plane_sidecache_t;
-
 _Static_assert(sizeof(bsp_model_tracestack_t) == 40, "bsp_model_tracestack_t size");
-_Static_assert(sizeof(bsp_model_plane_sidecache_t) == 24, "bsp_model_plane_sidecache_t size");
 // gladiator.dll: 100044F0..100052B4
 // gladi386.so:   0000BBBC..0000D0C9
 /* Sweep a box from start to end through BSP model `modelnum` at
  * `modelorigin`/`angles` — Gladiator's own Q2-era BSP-model collision (Q3
- * delegates BSP traces to the engine).
+ * delegates BSP traces to the engine).  The pieces of the line live in a
+ * 128-entry trace stack threaded onto a free list and a trace list; the trace
+ * list is kept sorted along the line's major axis so the pieces nearest the start
+ * are traced first.  Returns bsp_trace_t by value (hidden return buffer).
  *
- * Two original stack aggregates: a 40-byte trace-stack frame
- * {start,end,nodenum,planenum,planedist,next} and a 24-byte
- * {int sideflags[4], float offsets[2]} side-cache block.  Returns bsp_trace_t by
- * value through MSVC's hidden-retbuf ABI. */
+ * RESTORED FROM gladi386.so, 2026-09-28 (byte-identical there).  IDA's version,
+ * decompiled from the DLL, had folded the source into a goto web and lost the
+ * shapes that decide gcc 2.7's code; each of these was read off the .so:
+ *   - every other-side index is `!side` written inline (gcc builds each one
+ *     with a branch: `xor eax,eax; cmp side,0; jne; mov eax,8`), not a
+ *     precomputed `side_b`;
+ *   - `sideflags` is int[2][2] [box offset][side] -- the row addressing is what
+ *     makes gcc hoist `&sideflags` into a register;
+ *   - every push takes a fresh entry off the free list behind its own
+ *     `if (!freelist) break;` (IDA had reused the entry just freed);
+ *   - the flags are truth values (`rotated = a||b||c`, `side = dir[type] < 0`),
+ *     the no-box split has its own `side2`, `positive` is an if/else;
+ *   - the negated normal is a real vec3_t, and the dot products put the memory
+ *     operand first where the .so reloads it (`plane->dist + DotProduct(...)`,
+ *     `DotProduct(cur_start, normal)`);
+ *   - declaration order is the .so's frame order, highest address first. */
 bsp_trace_t __cdecl AAS_TraceBSPModel(
         int modelnum,
         const vec3_t modelorigin,
@@ -796,109 +807,28 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
         int passent,
         int contentmask)
 {
-  int v12; // eax
-  float v13; // st7
-  /* v14: the selected BSP model — an `int` truncates dmodels on 64-bit. */
-  dmodel_t *v14;
-  float v15; // st7
-  bsp_model_tracestack_t *v16; // eax
-  int v17; // edx
-  /* v19, v56, v100: pointers into trace_stack.  The link slots stay 4 bytes wide,
-   * but on 64-bit they hold encoded byte offsets — see TR_ENC/TR_DEC below. */
-  bsp_model_tracestack_t *v19;
-  bsp_model_tracestack_t *v24; // ebx
-  bsp_model_tracestack_t *v25; // esi
-  int *v27; // ebp
-  int v28; // eax
-  int v29; // esi
-  dleaf_t *v30; // eax
-  dnode_t *v31; // edx
-  int v37; // eax
-  /* v38: the BSP plane for `v37`; same truncation class as v14 above. */
-  dplane_t *v38;
-  int v39; // ecx
-  float v40; // st7
-  float v41; // st6
-  float v42; // st7
-  float v44; // st6
-  float v45; // st5
-  float v46; // st4
-  int v47; // eax
-  float v48; // st6
-  BOOL v49; // eax
-  BOOL v51; // eax
-  int v53; // ecx
-  int v54; // eax
-  /* side_a/side_b: the 0/1 "which side of the plane" selectors, plain ints with no
-   * FPU traffic.  Float locals here cost a real fld/fstp per read.  v109's genuine
-   * float distance value is a separate thing. */
-  int side_a;
-  int side_b;
-  bsp_model_tracestack_t *v56; // eax — one temp shared by all three disjoint fresh-node sites
-  int *v57; // esi  — points at a single 4-byte link slot (an encoded offset on 64-bit);
-       // shared by all three disjoint fresh-node sites
-  int v59; // edx
-  float v60; // st7
-  bsp_model_tracestack_t *v64; // esi
-  bsp_model_tracestack_t *v70; // edx
-  int v82; // edx
-  float v83; // st7
-  int v89; // eax
-  int v90; // ecx
-  int v96; // eax
-  int v97; // ecx
-  float v98; // st7
-  bsp_model_tracestack_t *v100; // eax — AArch64: trace-stack frame pointer (see v19)
-  int v101; // ecx
-  int v103; // edx
-  vec3_t v106; // [esp+10h] [ebp-1548h] BYREF — current piece start
-  float v109; // [esp+1Ch] [ebp-153Ch]
-  float v110; // [esp+20h] [ebp-1538h]
-  vec3_t v111; // [esp+24h] [ebp-1534h] BYREF — current piece end
-  float v114[3]; /* was v114,v115,v116: vec3_t plane normal */
-  /* v115 subsumed into v114[1] */
-  /* v116 subsumed into v114[2] */
-  int v117; // [esp+3Ch] [ebp-151Ch]
-  float v118; // [esp+40h] [ebp-1518h]
-  int v119; // [esp+44h] [ebp-1514h]
-  dnode_t *v120; // [esp+48h] [ebp-1510h]
-  int v121; // [esp+4Ch] [ebp-150Ch]
-  int *v50; // ecx
-  int *v122; // [esp+50h] [ebp-1508h]
-  vec3_t v123; // [esp+54h] [ebp-1504h] BYREF — split point A
-  int v126; // [esp+60h] [ebp-14F8h]
-  float v127; // [esp+64h] [ebp-14F4h]
-  vec3_t v128; // [esp+68h] [ebp-14F0h] BYREF — overall trace delta
-  /* The 24-byte side-cache block.  These MUST stay two separate scalar floats and
-   * the indexed reads must stay byte-offset expressions: an array forces MSVC to
-   * keep the pair addressable as a unit, while two scalars let it coalesce them.
-   * The `*(&v133 + v121)` walks are the original's addressing — do not "fix". */
-  int plane_sideflags[4];
-  float v133;
-  float v134;
-  BOOL v135; // [esp+8Ch] [ebp-14CCh]
-  vec3_t v136; // [esp+90h] [ebp-14C8h] BYREF — model origin + dmodel origin
-  vec3_t v139; // [esp+9Ch] [ebp-14BCh] BYREF — split point B
-  int v142; // [esp+A8h] [ebp-14B0h]
-  int v144; // [esp+B0h] [ebp-14A8h]
-  float v145[2]; // [esp+B4h] [ebp-14A4h]
-  float v147[2]; // [esp+C0h] [ebp-1498h]
-  float v149[3]; // [esp+D4h] [ebp-1484h] BYREF
-  float v148[3]; // [esp+C8h] [ebp-1490h] BYREF
-  bsp_trace_t trace; // [esp+E0h] [ebp-1478h] BYREF
-  float v151[3][3]; // [esp+134h] [ebp-1424h] BYREF
-  /* 128 contiguous 40-byte trace frames; v153 aliases trace_stack[0].next. */
-  bsp_model_tracestack_t trace_stack[128];   // [esp+158h] [ebp-13A0h] BYREF
+  int sideflags[2][2];
+  float axis[3][3];
+  vec3_t cur_start, cur_end, mid1, mid2, v1, v2, dir, normal, origin, invnormal;
+  bsp_model_tracestack_t tracestack[128];
+  bsp_trace_t trace;
+  float frontd[2], offsets[2], backd[2];
+  int i, leafnum, planenum, sortaxis, positive, rotated, translated, side, side2, nodenum, type;
+  float front, back, frac1, frac2, dist, planedist;
+  bsp_model_tracestack_t *tstack_p, *tracelist, *freelist, *ts, *prev;
+  dnode_t *node;
+  dplane_t *plane;
+  dleaf_t *leaf;
   /* The trace-stack lists keep their next-pointer in 4-byte int slots.  On 32-bit
    * a pointer fits and TR_ENC/TR_DEC are the identity; on 64-bit each link becomes
-   * a byte offset into trace_stack, stored as offset+1 so 0 stays NULL.
+   * a byte offset into tracestack, stored as offset+1 so 0 stays NULL.
    * MSVC6 does not define __SIZEOF_POINTER__, hence the `!defined` clause. */
 #if !defined(__SIZEOF_POINTER__) || __SIZEOF_POINTER__ == 4
   #define TR_ENC(p) ((int)(intptr_t)(p))
   #define TR_DEC(i) ((bsp_model_tracestack_t *)(intptr_t)(i))
 #else
-  #define TR_ENC(p) ((p) ? (int)(((intptr_t)(p) - (intptr_t)trace_stack) + 1) : 0)
-  #define TR_DEC(i) ((i) ? (bsp_model_tracestack_t *)((intptr_t)trace_stack + ((unsigned int)(i) - 1u)) : (bsp_model_tracestack_t *)0)
+  #define TR_ENC(p) ((p) ? (int)(((intptr_t)(p) - (intptr_t)tracestack) + 1) : 0)
+  #define TR_DEC(i) ((i) ? (bsp_model_tracestack_t *)((intptr_t)tracestack + ((unsigned int)(i) - 1u)) : (bsp_model_tracestack_t *)0)
 #endif
 
   memset(&trace, 0, sizeof(trace));
@@ -908,412 +838,360 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   trace.fraction = 1.0f;
   if ( !bspworld.dword_100674C0 )
     return trace;
-  VectorSubtract(end, start, v128);
-  if ( v128[0] > v128[1] )
-    v12 = v128[0] > v128[2] ? 0 : 2;
-  else
-    v12 = v128[1] > v128[2] ? 1 : 2;
-  v13 = v128[v12];
-  v126 = v12;
-  /* Explicit if/else, not `v135 = v13 > 0`: gcc272 emits one byte less and 4 fewer
-   * instruction diffs, and MSVC6 folds all three spellings identically.  Do not
-   * "simplify" back to the assignment. */
-  if ( v13 > 0 )
-    v135 = 1;
-  else
-    v135 = 0;
-  if ( angles[0] == 0 && angles[1] == 0 && angles[2] == 0 )
+  VectorSubtract(end, start, dir);
+  //the axis along which the pieces of the trace line are sorted
+  if ( dir[0] > dir[1] )
   {
-    v144 = 0;
+    if ( dir[0] > dir[2] ) sortaxis = 0;
+    else sortaxis = 2;
   }
   else
   {
-    v144 = 1;
-    AnglesToAxis(angles, v151);
+    if ( dir[1] > dir[2] ) sortaxis = 1;
+    else sortaxis = 2;
   }
-  v14 = &bspworld.dmodels[modelnum];
-  v136[0] = v15 = v14->origin[0] + modelorigin[0];
-  v136[1] = v14->origin[1] + modelorigin[1];
-  v136[2] = v14->origin[2] + modelorigin[2];
-  if ( v15 != 0 || v136[1] != 0 || (v142 = 0, v136[2] != 0) )
-    v142 = 1;
-  v16 = trace_stack;
-  v17 = 127;
-  do
+  if ( dir[sortaxis] > 0 ) positive = 1;
+  else positive = 0;
+  rotated = angles[0] || angles[1] || angles[2];
+  if ( rotated )
+    AnglesToAxis(angles, axis);
+  VectorAdd(modelorigin, bspworld.dmodels[modelnum].origin, origin);
+  translated = origin[0] || origin[1] || origin[2];
+  //initialize the free list
+  for ( i = 0; i < 127; i++ )
+    tracestack[i].next = TR_ENC(&tracestack[i + 1]);
+  tracestack[127].next = 0;
+  freelist = tracestack;
+  tracelist = NULL;
+  //the whole trace line is the first piece on the trace list.  The same take-a-free-
+  //entry code as every push below, NULL test included: gcc 2.7 folds the test away
+  //(freelist is a frame address), cl.exe keeps it (`lea eax,[esp+...]; test eax,eax`).
+  tstack_p = freelist;
+  if ( !tstack_p )
   {
-    v16->next = TR_ENC(v16 + 1);   /* AArch64: encode offset into trace_stack, not raw ptr */
-    ++v16;
-    --v17;
+    botimport.Print(PRT_ERROR, "AAS_TraceBSPModel: out of trace lines\n");
+    return trace;
   }
-  while ( v17 );
-  trace_stack[127].next = 0;
-  /* A dead-in-practice NULL check on &trace_stack[0] that the 1998 compiler still
-   * emitted.  v16 holds the fresh base address, matching the original's fresh `lea`
-   * rather than the loop's advanced pointer.  Do not fold into v24's definition. */
-  v16 = trace_stack;
-  if ( !v16 )
-    goto LABEL_125;
-  v19 = TR_DEC(trace_stack[0].next);
-  VectorCopy(start, trace_stack[0].start);
-  VectorCopy(end, trace_stack[0].end);
-  trace_stack[0].nodenum = v14->headnode;
-  trace_stack[0].planenum = 0;
-  trace_stack[0].planedist = 0.0f;
-  trace_stack[0].next = 0;
-  v24 = trace_stack;
+  freelist = TR_DEC(tstack_p->next);
+  VectorCopy(start, tstack_p->start);
+  VectorCopy(end, tstack_p->end);
+  tstack_p->nodenum = bspworld.dmodels[modelnum].headnode;
+  tstack_p->planenum = 0;
+  tstack_p->planedist = 0;
+  tstack_p->next = TR_ENC(tracelist);
+  tracelist = tstack_p;
   while ( 1 )
   {
-    /* ONE merged node loop with the BOX path as the warm fall-through.  The box arm
-     * must be the `if` body and the no-box arm the `else`: that is what places the
-     * whole no-box arm cold, each exit jumping back to the trace-stack pop. */
-      while ( 1 )
+    //take the first piece off the trace list
+    tstack_p = tracelist;
+    if ( !tstack_p )
+      return trace;
+    tracelist = TR_DEC(tstack_p->next);
+    if ( tstack_p->planenum < 0 )
+      return trace;
+    nodenum = tstack_p->nodenum;
+    //if the piece is in a leaf
+    if ( nodenum < 0 )
+    {
+      leafnum = -1 - nodenum;
+      leaf = &bspworld.dleafs[leafnum];
+      if ( leaf->numleafbrushes && (leaf->contents & contentmask) )
+        CM_TraceThroughLeaf(leafnum, origin, angles, start, boxmins, boxmaxs, end, contentmask, &trace);
+      if ( bspworld.dword_10069584[leafnum] )
+        sub_10003BF0(leafnum, start, boxmins, boxmaxs, end, passent, contentmask, &trace);
+      continue;
+    }
+    node = &bspworld.dnodes[nodenum];
+    VectorCopy(tstack_p->start, cur_start);
+    VectorCopy(tstack_p->end, cur_end);
+    planenum = tstack_p->planenum;
+    planedist = tstack_p->planedist;
+    //the piece goes back on the free list
+    tstack_p->next = TR_ENC(freelist);
+    freelist = tstack_p;
+    plane = &bspworld.dplanes[node->planenum];
+    if ( rotated )
+    {
+      VectorCopy(plane->normal, normal);
+      RotatePoint(normal, axis);
+      type = 4;
+    }
+    else
+    {
+      type = plane->type;
+      VectorCopy(plane->normal, normal);
+    }
+    if ( translated )
+    {
+      if ( type < 3 ) dist = plane->dist + origin[type];
+      else dist = plane->dist + DotProduct(normal, origin);
+    }
+    else
+    {
+      dist = plane->dist;
+    }
+    if ( boxmins && boxmaxs )
+    {
+      if ( type < 3 )
       {
-        while ( 1 )
-        {
-          v25 = v24;
-          if ( !v24 )
-            return trace;
-          v119 = v25->planenum;
-          v27 = &v24->next;
-          v24 = TR_DEC(v24->next);
-          if ( v119 < 0 )
-            return trace;
-          v28 = v25->nodenum;
-          if ( v28 >= 0 )
-            break;
-          v29 = -1 - v28;
-          v30 = &bspworld.dleafs[v29];
-          if ( v30->numleafbrushes && (contentmask & v30->contents) != 0 )
-            CM_TraceThroughLeaf(v29, v136, angles, start, boxmins, boxmaxs, end, contentmask, &trace);
-          if ( bspworld.dword_10069584[v29] )
-            sub_10003BF0(v29, start, boxmins, boxmaxs, end, passent, contentmask, &trace);
-        }
-          VectorCopy(v25->start, v106);
-          v31 = &bspworld.dnodes[v28];
-          VectorCopy(v25->end, v111);
-          v127 = v25->planedist;
-          *v27 = TR_ENC(v19);   /* AArch64: link slot must be offset-encoded, not raw ptr */
-          v37 = v31->planenum;
-          v120 = v31;
-          v19 = v25;
-          v38 = &bspworld.dplanes[v37];
-          if ( v144 )
-          {
-            VectorCopy(v38->normal, v114);
-            RotatePoint(v114, v151);
-            v31 = v120;
-            v39 = 4;
-          }
-          else
-          {
-            v117 = v38->type;
-            VectorCopy(v38->normal, v114);
-            v39 = v117;
-          }
-          if ( v142 )
-            v40 = v39 < 3 ? v136[v39] + v38->dist : DotProduct(v114, v136) + v38->dist;
-          else
-            v40 = v38->dist;
-        if ( boxmins && boxmaxs )
-        {
-        if ( v39 < 3 )
-        {
-          v41 = v106[v39] - v40;
-          v121 = 1;
-          v109 = v41;
-          v42 = v111[v39] - v40;
-          if ( v128[v39] >= 0 )
-            v121 = 0;
-          v133 = -boxmins[v39];
-          v134 = -boxmaxs[v39];
-        }
-        else
-        {
-          v121 = 1;
-          v109 = DotProduct(v114, v106) - v40;
-          v42 = DotProduct(v114, v111) - v40;
-          if ( DotProduct(v114, v128) >= 0 )
-            v121 = 0;
-          /* 3-component loop selecting boxmaxs[i] or boxmins[i] by the sign of the
-           * plane normal v114[i], into the BSP extents v148[i] / v149[i]. */
-          {
-            int _j;
-            for (_j = 0; _j < 3; _j++) {
-              if (v114[_j] > 0.0f) {
-                v148[_j] = boxmins[_j];
-                v149[_j] = boxmaxs[_j];
-              } else {
-                v148[_j] = boxmaxs[_j];
-                v149[_j] = boxmins[_j];
-              }
-            }
-          }
-          v44 = -v114[0];
-          v45 = -v114[1];
-          v46 = -v114[2];
-          v31 = v120;
-          v133 = v148[2] * v46 + v148[1] * v45 + v148[0] * v44;
-          v134 = v149[2] * v46 + v149[1] * v45 + v149[0] * v44;
-        }
-        v122 = &plane_sideflags[1];
-        v47 = 0;
-        do
-        {
-          v48 = v109 - *(float *)((char *)&v133 + v47);
-          *(float *)((char *)v145 + v47) = v48;
-          v110 = v42 - *(float *)((char *)&v133 + v47);
-          *(float *)((char *)v147 + v47) = v110;
-          v49 = v48 > -0.005 && v110 > -0.005;
-          v50 = v122;
-          *(v122 - 1) = v49;
-          v51 = v48 < 0.005 && v110 < 0.005;
-          *v50 = v51;
-          v47 += 4;
-          v122 = v50 + 2;
-        }
-        while ( v47 < 8 );
-        v53 = v121;
-        if ( !plane_sideflags[v121] && !plane_sideflags[v121 + 2] )
-          break;
-        v19 = TR_DEC(*v27);
-        VectorCopy(v106, v25->start);
-        VectorCopy(v111, v25->end);
-        v25->planenum = v119;
-        v25->planedist = v127;
-        v25->nodenum = v31->children[v53];
-        v54 = plane_sideflags[v53];
-        *v27 = TR_ENC(v24);
-        v24 = v25;
-        if ( !v54 )
-          break;
-          if ( !plane_sideflags[v53 + 2] )
-            break;
-        }
-        else
-        {
-          if ( v39 < 3 )
-          {
-            v109 = v106[v39] - v40;
-            v83 = v111[v39] - v40;
-          }
-          else
-          {
-            v109 = DotProduct(v114, v106) - v40;
-            v83 = DotProduct(v114, v111) - v40;
-          }
-          if ( v109 <= -0.005 || v83 <= -0.005 )
-          {
-            if ( v109 >= 0.005 || v83 >= 0.005 )
-            {
-              side_a = 1;
-              v98 = v109 / (v109 - v83);
-              v123[0] = (v111[0] - v106[0]) * v98 + v106[0];
-              v123[1] = (v111[1] - v106[1]) * v98 + v106[1];
-              v123[2] = (v111[2] - v106[2]) * v98 + v106[2];
-              if ( v109 >= 0 )
-                side_a = 0;
-              VectorCopy(v123, v25->start);
-              VectorCopy(v111, v25->end);
-              v100 = TR_DEC(*v27);
-              v25->planenum = v31->planenum;
-              v25->planedist = 0.0f;
-              v101 = v31->children[side_a == 0];
-              *v27 = TR_ENC(v24);
-              v25->nodenum = v101;
-              if ( !v100 )
-                goto LABEL_125;
-              v19 = TR_DEC(v100->next);
-              VectorCopy(v106, v100->start);
-              VectorCopy(v123, v100->end);
-              v100->planenum = v119;
-              v100->planedist = 0.0f;
-              v103 = v31->children[side_a];
-              v24 = v100;
-              v100->nodenum = v103;
-              v100->next = TR_ENC(v25);
-            }
-            else
-            {
-              v19 = TR_DEC(*v27);
-              VectorCopy(v106, v25->start);
-              VectorCopy(v111, v25->end);
-              v96 = v119;
-              v25->planenum = v96;
-              v25->planedist = 0.0f;
-              v97 = v31->children[1];
-              *v27 = TR_ENC(v24);
-              v25->nodenum = v97;
-              v24 = v25;
-            }
-          }
-          else
-          {
-            v19 = TR_DEC(*v27);
-            VectorCopy(v106, v25->start);
-            VectorCopy(v111, v25->end);
-            v89 = v119;
-            v25->planenum = v89;
-            v25->planedist = 0.0f;
-            v90 = v31->children[0];
-            *v27 = TR_ENC(v24);
-            v25->nodenum = v90;
-            v24 = v25;
-          }
-        }
-        }
-      side_b = (v53 == 0);
-      if ( plane_sideflags[side_b] || plane_sideflags[side_b + 2] )
-      {
-        if ( !v19 )
-          break;
-        v56 = v19;
-        v57 = &v19->next;
-        VectorCopy(v106, v56->start);
-        VectorCopy(v111, v56->end);
-        v19 = TR_DEC(v19->next);
-        v56->planenum = v119;
-        v56->planedist = v127;
-        v59 = v31->children[side_b];
-        *v57 = TR_ENC(v24);
-        v56->nodenum = v59;
-        v24 = v56;
-        if ( !plane_sideflags[side_b] || !plane_sideflags[side_b + 2] )
-          goto LABEL_71;
+        front = cur_start[type] - dist;
+        back = cur_end[type] - dist;
+        side = dir[type] < 0;
+        offsets[0] = -boxmins[type];
+        offsets[1] = -boxmaxs[type];
       }
       else
       {
-LABEL_71:
-        if ( plane_sideflags[2 * side_b] || plane_sideflags[2 * side_b + 1] )
+        front = DotProduct(cur_start, normal) - dist;
+        back = DotProduct(cur_end, normal) - dist;
+        side = DotProduct(normal, dir) < 0;
+        for ( i = 0; i < 3; i++ )
         {
-          v118 = -1.0f;
-        }
-        else
-        {
-          v118 = v145[side_b] / (v145[side_b] - v147[side_b]);
-          v123[0] = (v111[0] - v106[0]) * v118 + v106[0];
-          v123[1] = (v111[1] - v106[1]) * v118 + v106[1];
-          v123[2] = (v111[2] - v106[2]) * v118 + v106[2];
-        }
-        if ( plane_sideflags[2 * v53] || plane_sideflags[2 * v53 + 1] )
-        {
-          v60 = -1.0f;
-        }
-        else
-        {
-          v60 = v145[v53] / (v145[v53] - v147[v53]);
-          v139[0] = (v111[0] - v106[0]) * v60 + v106[0];
-          v139[1] = (v111[1] - v106[1]) * v60 + v106[1];
-          v139[2] = (v111[2] - v106[2]) * v60 + v106[2];
-        }
-        if ( v118 >= 0 || v60 >= 0 )
-        {
-          if ( plane_sideflags[v53] || plane_sideflags[v53 + 2] )
-            goto LABEL_103;
-          if ( v118 < 0 )
+          if ( normal[i] > 0 )
           {
-            if ( v60 < 0 )
-              goto LABEL_103;
-            if ( !v19 )
-              break;
-            v56 = v19;
-            v57 = &v19->next;
-            VectorCopy(v139, v56->start);
-            VectorCopy(v111, v56->end);
-            v19 = TR_DEC(v19->next);
-            v56->planenum = v120->planenum;
-            v56->planedist = *(&v133 + v121);
-            v64 = 0;
-            v56->nodenum = v120->children[v121];
-            v70 = v24;
-            if ( !v24 )
-            {
-LABEL_101:
-              v24 = v56;
-              goto LABEL_102;
-            }
-            while ( v56->start[v126] < v70->start[v126] != v135 )
-            {
-              v64 = v70;
-              v70 = TR_DEC(v70->next);
-              if ( !v70 )
-                goto LABEL_99;
-            }
+            v1[i] = boxmins[i];
+            v2[i] = boxmaxs[i];
           }
           else
           {
-            if ( !v19 )
-              break;
-            v56 = v19;
-            v57 = &v19->next;
-            v64 = 0;
-            VectorCopy(v123, v56->start);
-            VectorCopy(v111, v56->end);
-            v19 = TR_DEC(v19->next);
-            v56->planenum = v120->planenum;
-            v56->planedist = *(&v133 + side_b);
-            v70 = v24;
-            v56->nodenum = v120->children[v121];
-            if ( !v24 )
-              goto LABEL_101;
-            while ( v56->start[v126] < v70->start[v126] != v135 )
-            {
-              v64 = v70;
-              v70 = TR_DEC(v70->next);
-              if ( !v70 )
-                goto LABEL_99;
-            }
+            v1[i] = boxmaxs[i];
+            v2[i] = boxmins[i];
           }
-          *v57 = TR_ENC(v70);
-          if ( v64 )
-            v64->next = TR_ENC(v56);
-          else
-            v24 = v56;
-          if ( v70 )
-            goto LABEL_103;
-LABEL_99:
-          if ( !v64 )
-            goto LABEL_101;
-          v64->next = TR_ENC(v56);
-LABEL_102:
-          *v57 = 0;
-LABEL_103:
-          if ( !plane_sideflags[side_b] && !plane_sideflags[side_b + 2] )
+        }
+        invnormal[0] = -normal[0];
+        invnormal[1] = -normal[1];
+        invnormal[2] = -normal[2];
+        offsets[0] = DotProduct(invnormal, v1);
+        offsets[1] = DotProduct(invnormal, v2);
+      }
+      for ( i = 0; i < 2; i++ )
+      {
+        frontd[i] = front - offsets[i];
+        backd[i] = back - offsets[i];
+        sideflags[i][0] = frontd[i] > -0.005 && backd[i] > -0.005;
+        sideflags[i][1] = frontd[i] < 0.005 && backd[i] < 0.005;
+      }
+      //the part on the side the trace line runs to
+      if ( sideflags[0][side] || sideflags[1][side] )
+      {
+        if ( !freelist ) break;
+        tstack_p = freelist;
+        freelist = TR_DEC(tstack_p->next);
+        VectorCopy(cur_start, tstack_p->start);
+        VectorCopy(cur_end, tstack_p->end);
+        tstack_p->planenum = planenum;
+        tstack_p->planedist = planedist;
+        tstack_p->nodenum = node->children[side];
+        tstack_p->next = TR_ENC(tracelist);
+        tracelist = tstack_p;
+        if ( sideflags[0][side] && sideflags[1][side] ) continue;
+      }
+      //the part on the other side
+      if ( sideflags[0][!side] || sideflags[1][!side] )
+      {
+        if ( !freelist ) break;
+        tstack_p = freelist;
+        freelist = TR_DEC(tstack_p->next);
+        VectorCopy(cur_start, tstack_p->start);
+        VectorCopy(cur_end, tstack_p->end);
+        tstack_p->planenum = planenum;
+        tstack_p->planedist = planedist;
+        tstack_p->nodenum = node->children[!side];
+        tstack_p->next = TR_ENC(tracelist);
+        tracelist = tstack_p;
+        if ( sideflags[0][!side] && sideflags[1][!side] ) continue;
+      }
+      if ( !sideflags[!side][0] && !sideflags[!side][1] )
+      {
+        frac1 = frontd[!side] / (frontd[!side] - backd[!side]);
+        mid1[0] = cur_start[0] + (cur_end[0] - cur_start[0]) * frac1;
+        mid1[1] = cur_start[1] + (cur_end[1] - cur_start[1]) * frac1;
+        mid1[2] = cur_start[2] + (cur_end[2] - cur_start[2]) * frac1;
+      }
+      else
+      {
+        frac1 = -1;
+      }
+      if ( !sideflags[side][0] && !sideflags[side][1] )
+      {
+        frac2 = frontd[side] / (frontd[side] - backd[side]);
+        mid2[0] = cur_start[0] + (cur_end[0] - cur_start[0]) * frac2;
+        mid2[1] = cur_start[1] + (cur_end[1] - cur_start[1]) * frac2;
+        mid2[2] = cur_start[2] + (cur_end[2] - cur_start[2]) * frac2;
+      }
+      else
+      {
+        frac2 = -1;
+      }
+      if ( frac1 < 0 && frac2 < 0 ) continue;
+      //the piece beyond the split point, sorted into the trace list
+      if ( !sideflags[0][side] && !sideflags[1][side] )
+      {
+        if ( frac1 >= 0 )
+        {
+          if ( !freelist ) break;
+          tstack_p = freelist;
+          freelist = TR_DEC(tstack_p->next);
+          VectorCopy(mid1, tstack_p->start);
+          VectorCopy(cur_end, tstack_p->end);
+          tstack_p->planenum = node->planenum;
+          tstack_p->planedist = offsets[!side];
+          tstack_p->nodenum = node->children[side];
+          prev = NULL;
+          for ( ts = tracelist; ts; ts = TR_DEC(ts->next) )
           {
-            if ( v60 >= 0 )
+            if ( (tstack_p->start[sortaxis] < ts->start[sortaxis]) == positive )
             {
-              if ( !v19 )
-                break;
-              v56 = v19;
-              v57 = &v19->next;
-              VectorCopy(v106, v56->start);
-              v19 = TR_DEC(v19->next);
-              VectorCopy(v139, v56->end);
-              goto LABEL_111;
+              tstack_p->next = TR_ENC(ts);
+              if ( prev ) prev->next = TR_ENC(tstack_p);
+              else tracelist = tstack_p;
+              break;
             }
-            if ( v118 >= 0 )
-            {
-              if ( !v19 )
-                break;
-              v56 = v19;
-              v57 = &v19->next;
-              VectorCopy(v106, v56->start);
-              v19 = TR_DEC(v19->next);
-              VectorCopy(v123, v56->end);
-LABEL_111:
-              v56->planenum = v119;
-              v56->planedist = v127;
-              v82 = v120->children[side_b];
-              *v57 = TR_ENC(v24);
-              v56->nodenum = v82;
-              v24 = v56;
-            }
+            prev = ts;
           }
+          if ( !ts )
+          {
+            if ( prev ) prev->next = TR_ENC(tstack_p);
+            else tracelist = tstack_p;
+            tstack_p->next = 0;
+          }
+        }
+        else if ( frac2 >= 0 )
+        {
+          if ( !freelist ) break;
+          tstack_p = freelist;
+          freelist = TR_DEC(tstack_p->next);
+          VectorCopy(mid2, tstack_p->start);
+          VectorCopy(cur_end, tstack_p->end);
+          tstack_p->planenum = node->planenum;
+          tstack_p->planedist = offsets[side];
+          tstack_p->nodenum = node->children[side];
+          prev = NULL;
+          for ( ts = tracelist; ts; ts = TR_DEC(ts->next) )
+          {
+            if ( (tstack_p->start[sortaxis] < ts->start[sortaxis]) == positive )
+            {
+              tstack_p->next = TR_ENC(ts);
+              if ( prev ) prev->next = TR_ENC(tstack_p);
+              else tracelist = tstack_p;
+              break;
+            }
+            prev = ts;
+          }
+          if ( !ts )
+          {
+            if ( prev ) prev->next = TR_ENC(tstack_p);
+            else tracelist = tstack_p;
+            tstack_p->next = 0;
+          }
+        }
+      }
+      //the piece in front of the split point
+      if ( !sideflags[0][!side] && !sideflags[1][!side] )
+      {
+        if ( frac2 >= 0 )
+        {
+          if ( !freelist ) break;
+          tstack_p = freelist;
+          freelist = TR_DEC(tstack_p->next);
+          VectorCopy(cur_start, tstack_p->start);
+          VectorCopy(mid2, tstack_p->end);
+          tstack_p->planenum = planenum;
+          tstack_p->planedist = planedist;
+          tstack_p->nodenum = node->children[!side];
+          tstack_p->next = TR_ENC(tracelist);
+          tracelist = tstack_p;
+        }
+        else if ( frac1 >= 0 )
+        {
+          if ( !freelist ) break;
+          tstack_p = freelist;
+          freelist = TR_DEC(tstack_p->next);
+          VectorCopy(cur_start, tstack_p->start);
+          VectorCopy(mid1, tstack_p->end);
+          tstack_p->planenum = planenum;
+          tstack_p->planedist = planedist;
+          tstack_p->nodenum = node->children[!side];
+          tstack_p->next = TR_ENC(tracelist);
+          tracelist = tstack_p;
+        }
+      }
+    }
+    else
+    {
+      if ( type < 3 )
+      {
+        front = cur_start[type] - dist;
+        back = cur_end[type] - dist;
+      }
+      else
+      {
+        front = DotProduct(cur_start, normal) - dist;
+        back = DotProduct(cur_end, normal) - dist;
+      }
+      //the whole piece is in front of the plane
+      if ( front > -0.005 && back > -0.005 )
+      {
+        if ( !freelist ) break;
+        tstack_p = freelist;
+        freelist = TR_DEC(tstack_p->next);
+        VectorCopy(cur_start, tstack_p->start);
+        VectorCopy(cur_end, tstack_p->end);
+        tstack_p->planenum = planenum;
+        tstack_p->planedist = 0;
+        tstack_p->nodenum = node->children[0];
+        tstack_p->next = TR_ENC(tracelist);
+        tracelist = tstack_p;
+      }
+      //the whole piece is behind the plane
+      else if ( front < 0.005 && back < 0.005 )
+      {
+        if ( !freelist ) break;
+        tstack_p = freelist;
+        freelist = TR_DEC(tstack_p->next);
+        VectorCopy(cur_start, tstack_p->start);
+        VectorCopy(cur_end, tstack_p->end);
+        tstack_p->planenum = planenum;
+        tstack_p->planedist = 0;
+        tstack_p->nodenum = node->children[1];
+        tstack_p->next = TR_ENC(tracelist);
+        tracelist = tstack_p;
+      }
+      //the piece is split by the plane
+      else
+      {
+        frac1 = front / (front - back);
+        mid1[0] = cur_start[0] + (cur_end[0] - cur_start[0]) * frac1;
+        mid1[1] = cur_start[1] + (cur_end[1] - cur_start[1]) * frac1;
+        mid1[2] = cur_start[2] + (cur_end[2] - cur_start[2]) * frac1;
+        side2 = front < 0;
+        if ( !freelist ) break;
+        tstack_p = freelist;
+        freelist = TR_DEC(tstack_p->next);
+        VectorCopy(mid1, tstack_p->start);
+        VectorCopy(cur_end, tstack_p->end);
+        tstack_p->planenum = node->planenum;
+        tstack_p->planedist = 0;
+        tstack_p->nodenum = node->children[!side2];
+        tstack_p->next = TR_ENC(tracelist);
+        tracelist = tstack_p;
+        if ( !freelist ) break;
+        tstack_p = freelist;
+        freelist = TR_DEC(tstack_p->next);
+        VectorCopy(cur_start, tstack_p->start);
+        VectorCopy(mid1, tstack_p->end);
+        tstack_p->planenum = planenum;
+        tstack_p->planedist = 0;
+        tstack_p->nodenum = node->children[side2];
+        tstack_p->next = TR_ENC(tracelist);
+        tracelist = tstack_p;
       }
     }
   }
-LABEL_125:
   botimport.Print(PRT_ERROR, "AAS_TraceBSPModel: out of trace lines\n");
   return trace;
+#undef TR_ENC
+#undef TR_DEC
 }
 
 // gladiator.dll: 10005640..100056AC
@@ -2106,29 +1984,44 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
  *     `if ((back<0)==side) return -1;`
  *   - drops Q1's `surf->flags & SURF_DRAWTILED` skip
  *   - `side == (back < 0)`, operands the other way round from Q1 (cl.exe keeps a
- *     comparison's textual order), and the lightofs read once into a local
- *   - Q1's single-channel `r += *lightmap * scale` becomes a 3-channel RGB read at
- *     the fixed style value 264, and the sample offset is ds * width + dt, the
- *     transpose of Q1's dt * width + ds.
+ *     comparison's textual order)
+ *   - Q1's single-channel `r += *lightmap * scale` becomes a 3-channel RGB read,
+ *     with Q1's `scale` variable kept but set to the fixed style value 264, and
+ *     the sample offset is ds * width + dt, the transpose of Q1's dt * width + ds.
  * Reads the per-face {texturemins[2], extents[2]} table CalcSurfaceExtents
- * builds.  Residual: a register tie in the face loop (the .so keeps `t` in ebp and
- * spills the strength-reduced &surf->lightofs; declaration order moves it only
- * partly). */
+ * builds.
+ *
+ * Three source forms both originals prove, each one measured:
+ *   - `scale = 264;` inside the maps loop, not the literal.  gcc 2.7 synthesises
+ *     a multiply by a constant into shifts and adds only when the constant is
+ *     visible at RTL expansion; gladi386.so has `imul eax,eax,0x108`, which is
+ *     what a variable CSE later finds constant gives.
+ *   - the lightmap offset as ONE expression with the RGB factor on each term and
+ *     no `ds >>= 4; dt >>= 4;` statements.  The .so evaluates it in exactly this
+ *     textual order, and it also fixes the ELF register allocation of the face
+ *     loop; the stride likewise is `(w * h) * 3`, not `3 * w * h`.
+ *   - `surf->lightofs` read at both uses, with no local.  cl.exe CSEs the two
+ *     reads into one register-held value and orders the adds as the DLL does;
+ *     through a local it folded the test into a memory compare and re-read the
+ *     field.
+ * The declaration order is the .so's spill-slot order (side, i, b, surf,
+ * extents, node from the top of its frame down): gcc 2.7 assigns spilled
+ * pseudos their slots in creation order, which is declaration order. */
 int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor)
 {
   float front, back, frac;
-  dnode_t *node;
   int side;
   dplane_t *plane;
   vec3_t mid;
-  short *extents;
-  dface_t *surf;
   int s, t, ds, dt;
   int i;
   texinfo_t *tex;
   byte *lightmap;
   int maps, r, g, b;
-  int lightofs;
+  unsigned scale;
+  dface_t *surf;
+  short *extents;
+  dnode_t *node;
 
   if (nodenum < 0)
     return 0;    // didn't hit anything
@@ -2178,8 +2071,7 @@ int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *li
     if (ds > extents[2] || dt > extents[3])
       continue;
 
-    lightofs = surf->lightofs;
-    if (lightofs < 0)
+    if (surf->lightofs < 0)
     {
       pointcolor[0] = 0;
       pointcolor[1] = 0;
@@ -2188,19 +2080,18 @@ int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *li
       return 1;
     }
 
-    ds >>= 4;
-    dt >>= 4;
-
-    lightmap = bspworld.dlightdata + lightofs;
-    r = g = b = 0;
-    lightmap += 3 * (ds * ((extents[2]>>4)+1) + dt);
+    lightmap = (ds>>4) * ((extents[2]>>4)+1) * 3 + surf->lightofs + (dt>>4) * 3 + bspworld.dlightdata;
+    r = 0;
+    g = 0;
+    b = 0;
 
     for (maps = 0; maps < 4 && surf->styles[maps] != 255; maps++)
     {
-      r += lightmap[0] * 264;
-      g += lightmap[1] * 264;
-      b += lightmap[2] * 264;
-      lightmap += 3 * ((extents[2]>>4)+1) * ((extents[3]>>4)+1);
+      scale = 264;
+      r += lightmap[0] * scale;
+      g += lightmap[1] * scale;
+      b += lightmap[2] * scale;
+      lightmap += ((extents[2]>>4)+1) * ((extents[3]>>4)+1) * 3;
     }
     pointcolor[0] = r >> 8;
     pointcolor[1] = g >> 8;

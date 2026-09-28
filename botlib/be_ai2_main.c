@@ -77,6 +77,10 @@ bot_waypoint_t **botcurpatrolpoint;
 int gametype; // weak
 bot_state_t *botstates; // base array of maxclients bot states
 float regularupdate_time; // weak
+/* Defined HERE, not in be_ai2_dmq2.c where it is read: both images keep it with this
+ * TU's data -- DLL 0x100643A8, beside botstates at 0x100643A0, and in gladi386.so's
+ * .bss between this object's numbots and gametype. */
+bot_clientsettings_t *clientsettings; /* per-client {netname[16], skin[128]} = 144 B */
 
 // gladiator.dll: 10028EA0..10028F01
 // gladi386.so:   0003744C..000374A9

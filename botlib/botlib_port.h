@@ -306,7 +306,25 @@ typedef float vec3_t[3];
 /* signed high-word/dword accessors */
 #define SHIDWORD(x)  (*((int *)&(x) + 1))
 
-/* Stubs for the statically-linked MSVC CRT helpers the bot code still calls. */
+/* Stubs for the statically-linked MSVC CRT helpers the bot code still calls.
+ *
+ * These four definitions (plus COERCE_FLOAT above: five in all) are compiled into
+ * EVERY TU of the MSVC6 oracle, and that count is load-bearing.  cl.exe /O2 breaks
+ * some register ties by how many function definitions precede the function in its
+ * TU, measured by inserting N dummy definitions: BotLoadCharacter matches only for
+ * N >= 5, BotLoadSynonyms for 2 <= N <= 13, PC_ReadDefineParms for N == 0 or N >= 5.
+ * Five satisfies all three.  Declarations count too, not only definitions: one more
+ * kernel32 prototype in l_utils.h flipped AAS_TraceBSPModel, and PC_ReadDefineParms
+ * needs >= 3 more names in scope -- which Q3's own `#include "l_log.h"` in
+ * l_precomp.c supplies.  (The thresholds above were measured before that include.)
+ *
+ * Not <windows.h>, although winnt.h also happens to define five x86 `__inline`
+ * functions: force-including it into every TU (2026-09-28) broke BotLoadCharacter
+ * and PC_ReadDefineParms and moved none of the open register ties.  The real
+ * replacement for these stubs is the CRT itself -- sub_1000E140 calls _spawnl
+ * (0x10052E44, `_spawnve(mode, cmd, &arg0, NULL)`), which is why the DLL imports
+ * CreateProcessA, GetExitCodeProcess and WaitForSingleObject and our oracle does not.
+ * Do not scope or remove these stubs without re-checking all three canaries. */
 #ifdef _WIN32
 /* Windows-only winbspc/zip subsystem (sub_1000E140/sub_1000E430, sub_10041FF0);
  * the Linux botlib has neither a process-spawn nor a chdir-for-bspc path. */

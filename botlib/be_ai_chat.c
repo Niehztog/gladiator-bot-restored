@@ -2209,119 +2209,97 @@ void __cdecl BotPrintReplyChatKeys(bot_replychat_t *arg)
 
 // gladiator.dll: 1002E7D0..1002E9C8
 // gladi386.so:   0003D880..0003DCAD
+/* Q3's text with Gladiator's older checks: no name/botname keys, the AND arm also
+ * sets `found`, no bot_testrchat branch, and the reply built from `match`.  Q3's
+ * `bestmatch` copy is kept although nothing reads it: gcc keeps the dead 240-byte
+ * copy (gladi386.so's `rep movs` and 0x218 frame), cl.exe deletes it and its slot
+ * (gladiator.dll's 0x100 frame), so this one text is both originals.  The
+ * `found = 0; break;` bodies, `num = random() * numchatmessages` as one expression
+ * and the two plain `for` walks are the .so's shape; IDA's gotos and its split
+ * random() matched only the DLL. */
 int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
 {
- bot_replychat_t *rchat; // ebx
- bot_replychatkey_t *key; // esi
- int found; // edi
- int v5; // ecx
- BOOL res; // eax
- bot_chatmessage_t *v7; // esi
- int numchatmessages; // edi / [esp+18h] [ebp-F8h]
- int num; // rax (was __int64) / edi
- float rnd;
- bot_chatmessage_t *v10; // esi
- int v14; // [esp+14h] [ebp-FCh]
- bot_chatmessage_t *bestchatmessage; // [esp+10h] [ebp-100h]
- bot_match_t match; // [esp+20h] [ebp-F0h] BYREF
+  bot_replychat_t *rchat;
+  bot_replychatkey_t *key;
+  bot_chatmessage_t *m, *bestchatmessage;
+  bot_match_t match, bestmatch;
+  int bestpriority, num, found, res, numchatmessages;
 
- memset(&match, 0, sizeof(match));
- rchat = replychats;
- strcpy(match.string, message);
- v14 = 0;
- bestchatmessage = 0;
- if ( !rchat )
-   return 0;
- do
- {
-   key = rchat->keys;
-   found = 0;
-   if ( !rchat->keys )
-     goto LABEL_34;
-   do
-   {
-     v5 = key->flags;
-     res = 0;
-     if ( (key->flags & 0x20) != 0 )
-     {
-       res = cs->gender == 1;
-     }
-     else if ( (v5 & 0x40) != 0 )
-     {
-       res = cs->gender == 2;
-     }
-     else if ( (v5 & 0x80) != 0 )
-     {
-       res = cs->gender == 0;
-     }
-     else if ( (v5 & 0x10) != 0 )
-     {
-       res = StringsMatch(key->match, &match);
-     }
-     else if ( (v5 & 8) != 0 )
-     {
-       res = StringContains(message, key->string, 0) != 0;
-     }
-     if ( (key->flags & 1) != 0 )
-     {
-       if ( !res )
-         goto LABEL_34;
-       found = 1;
-     }
-     else if ( (key->flags & 2) != 0 )
-     {
-       if ( res )
-         goto LABEL_34;
-     }
-     else if ( res )
-     {
-       found = 1;
-     }
-     key = key->next;
-   }
-   while ( key );
-   if ( found && (float)v14 < rchat->priority )
-   {
-     v7 = rchat->firstchatmessage;
-     numchatmessages = 0;
-     if ( v7 )
-     {
-       do
-       {
-         if ( AAS_Time() >= v7->time )
-           ++numchatmessages;
-         v7 = v7->next;
-       }
-       while ( v7 );
-     }
-     /* Two statements, not one expression: the original multiplies by the
-        0.000030518509f constant BEFORE the v15 factor, and only a sequence point
-        after the const-scaled value reproduces that order. */
-     rnd = random();
-     num = (int)(rnd * (float)numchatmessages);
-     for ( v10 = rchat->firstchatmessage; v10; v10 = v10->next )
-     {
-       if ( --num < 0 )
-         break;
-       AAS_Time();
-     }
-     if ( v10 )
-     {
-       bestchatmessage = v10;
-       v14 = (int)rchat->priority;
-     }
-   }
-LABEL_34:
-   rchat = rchat->next;
- }
- while ( rchat );
- if ( bestchatmessage )
- {
-   bestchatmessage->time = AAS_Time() + 20.0f;
-   BotConstructChatMessage(cs, bestchatmessage->chatmessage, 0, (bot_chatvar_t *)match.variables, 16);
-   return 1;
- }
- return 0;
+  memset(&match, 0, sizeof(bot_match_t));
+  strcpy(match.string, message);
+  bestpriority = 0;
+  bestchatmessage = NULL;
+  //go through all the reply chats
+  for (rchat = replychats; rchat; rchat = rchat->next)
+  {
+    found = 0;
+    for (key = rchat->keys; key; key = key->next)
+    {
+      res = 0;
+      //get the match result
+      if (key->flags & 0x20) res = (cs->gender == 1);
+      else if (key->flags & 0x40) res = (cs->gender == 2);
+      else if (key->flags & 0x80) res = (cs->gender == 0);
+      else if (key->flags & 0x10) res = StringsMatch(key->match, &match);
+      else if (key->flags & 8) res = (StringContains(message, key->string, 0) != 0);
+      //if the key must be present
+      if (key->flags & 1)
+      {
+        if (!res)
+        {
+          found = 0;
+          break;
+        }
+        found = 1;
+      }
+      //if the key must be absent
+      else if (key->flags & 2)
+      {
+        if (res)
+        {
+          found = 0;
+          break;
+        }
+      }
+      else if (res)
+      {
+        found = 1;
+      }
+    }
+    //
+    if (found)
+    {
+      if (rchat->priority > bestpriority)
+      {
+        numchatmessages = 0;
+        for (m = rchat->firstchatmessage; m; m = m->next)
+        {
+          if (m->time > AAS_Time()) continue;
+          numchatmessages++;
+        }
+        num = random() * numchatmessages;
+        for (m = rchat->firstchatmessage; m; m = m->next)
+        {
+          if (--num < 0) break;
+          if (m->time > AAS_Time()) continue;
+        }
+        //if the reply chat has a message
+        if (m)
+        {
+          memcpy(&bestmatch, &match, sizeof(bot_match_t));
+          bestchatmessage = m;
+          bestpriority = rchat->priority;
+        }
+      }
+    }
+  }
+  if (bestchatmessage)
+  {
+    bestchatmessage->time = AAS_Time() + 20.0f;
+    BotConstructChatMessage(cs, bestchatmessage->chatmessage, 0, (bot_chatvar_t *)match.variables, 16);
+    return 1;
+  }
+  return 0;
 }
 
 // gladiator.dll: 1002EA50..1002EA66

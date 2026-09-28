@@ -55,7 +55,6 @@ char *weaponinfo_fields[] = {
     FE("spindown",        0x150, 0x003, 0, 0x00000000),
     FE_END
 };
-structdef_t weaponinfo_struct = { 344, weaponinfo_fields };
 
 /* projectileinfo_struct — descriptor at 0x1005DFE0 (208 B); field table at 0x1005DE30.
  * Deliberately NOT `static`: gladi386.so exports it as a `D` symbol
@@ -77,6 +76,10 @@ char *projectileinfo_fields[] = {
     FE("bouncestop",  0x0CC, 0x003, 0, 0x00000000),
     FE_END
 };
+/* Both descriptors after both field tables, as in Q3's be_ai_weap.c: that is the
+ * order of all four in each image's .data (DLL 0x1005DBC8, 0x1005DE30, 0x1005DFD8,
+ * 0x1005DFE0; the .so has the same sequence). */
+structdef_t weaponinfo_struct = { 344, weaponinfo_fields };
 structdef_t projectileinfo_struct = { 208, projectileinfo_fields };
 
 weaponconfig_t *weaponconfig; /* current weapon config (was dword_10064080) */

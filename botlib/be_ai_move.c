@@ -31,7 +31,10 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
-static int dword_1006295C = 0;
+/* No initialiser: gcc 2.7 puts an explicitly zeroed static in .data and a bare one in
+ * .bss, and gladi386.so has this word in .bss -- its .data has no be_ai_move entry at
+ * all, while its leading run of TU statics is exactly 4 bytes longer than ours was. */
+static int dword_1006295C;
 static libvar_t *libvar_laserhook; /* libvar handle */
 
 // gladiator.dll: 10030A50..10030A8F
@@ -628,12 +631,15 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
   /* Q3's BotCheckBlocked declares vec3_t up = {0,0,1} and tests
    * fabs(DotProduct(dir, up)) < 0.7.  MSVC6 constant-folds that to fabs(dir[2]) (PE
    * byte-identical either way), but gcc 2.7.2.3 does not fold it and materialises up
-   * plus the 3-term dot product, so the literal DotProduct form is required for ELF. */
+   * plus the 3-term dot product, so the literal DotProduct form is required for ELF.
+   * The 0.7 is a DOUBLE, as in Q3: gladi386.so's twelve inlined copies of this test
+   * each carry the constant 0x3FE6666666666666 in .rodata; `0.7f` emitted the widened
+   * float 0x3FE6666660000000 instead, which the masked byte audit cannot see. */
   vec3_t up = {0.0f, 0.0f, 1.0f};
   bsp_trace_t trace; // [esp+2Ch] [ebp-54h] BYREF (was int trace[21])
 
   AAS_PresenceTypeBoundingBox(ms->presencetype, mins, maxs);
-  if ( fabs(DotProduct(dir, up)) < 0.7f )
+  if ( fabs(DotProduct(dir, up)) < 0.7 )
   {
     mins[2] = mins[2] + libvar_sv_step->value;
     maxs[2] = maxs[2] - 10.0f;
@@ -656,11 +662,14 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
 
 // gladiator.dll: 10031E20..10031E38
 // gladi386.so:   000413E4..00041412
-bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
+/* Q3's `void`.  IDA's `bot_moveresult_t *` return was only eax still holding the
+ * parameter at the `ret`; both bodies are identical either way.  It is NOT free:
+ * gcc 2.7 inlines this into every travel builder, and the pointer return's extra
+ * pre-optimisation RTL insns were exactly what pushed BotTravel_WaterJump (81) and
+ * BotFinishTravel_Jump (80) over the 8 * (8 + 2) = 80 inline limit, so BotMoveToGoal
+ * called them where gladi386.so has both bodies inlined (ELF OUR-174). */
+void __cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
 {
-  bot_moveresult_t *result; // eax
-
-  result = moveresult;
   moveresult->failure = 0;
   moveresult->type = 0;
   moveresult->blocked = 0;
@@ -674,7 +683,6 @@ bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
   VectorClear(moveresult->movedir);
   VectorClear(moveresult->ideal_viewangles);
 #endif
-  return result;
 }
 
 // gladiator.dll: 10031E50..10031F8A
@@ -1535,37 +1543,31 @@ bot_moveresult_t __cdecl BotFinishTravel_WeaponJump(bot_movestate_t *ms, aas_rea
 
 // gladiator.dll: 10034170..100341AF
 // gladi386.so:   000448BC..0004495C
+/* Q3's case list in Q3's order, minus its later JUMPPAD/FUNCBOB arms and with
+ * BFGJUMP left to the default, as the DLL's jump table shows.  The standalone body
+ * is the same in either order; the copy gcc inlines into BotMoveToGoal is not: it
+ * lays GRAPPLEHOOK's `return 8` before ROCKETJUMP's `return 6`, as the .so does. */
 int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 {
   switch ( reach->traveltype )
   {
-    case TRAVEL_WALK:
-      return 5;
-    case TRAVEL_CROUCH:
-      return 5;
-    case TRAVEL_BARRIERJUMP:
-      return 5;
-    case TRAVEL_JUMP:
-      return 5;
-    case TRAVEL_LADDER:
-      return 6;
-    case TRAVEL_WALKOFFLEDGE:
-      return 5;
-    case TRAVEL_SWIM:
-      return 5;
-    case TRAVEL_WATERJUMP:
-      return 5;
-    case TRAVEL_TELEPORT:
-      return 5;
-    case TRAVEL_ELEVATOR:
-      return 10;
-    case TRAVEL_ROCKETJUMP:
-      return 6;
-    case TRAVEL_GRAPPLEHOOK:  // silent, unlike the default
-      return 8;
-    default:  // incl. TRAVEL_BFGJUMP and out-of-range
+    case TRAVEL_WALK: return 5;
+    case TRAVEL_CROUCH: return 5;
+    case TRAVEL_BARRIERJUMP: return 5;
+    case TRAVEL_LADDER: return 6;
+    case TRAVEL_WALKOFFLEDGE: return 5;
+    case TRAVEL_JUMP: return 5;
+    case TRAVEL_SWIM: return 5;
+    case TRAVEL_WATERJUMP: return 5;
+    case TRAVEL_TELEPORT: return 5;
+    case TRAVEL_ELEVATOR: return 10;
+    case TRAVEL_GRAPPLEHOOK: return 8;
+    case TRAVEL_ROCKETJUMP: return 6;
+    default:
+    {
       botimport.Print(PRT_ERROR, "travel type %d not implemented yet\n", reach->traveltype);
       return 8;
+    }
   }
 }
 
@@ -1629,17 +1631,19 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
  * materialises the temp and the copy from a plain `v = F(…)` anyway, while gcc 2.7
  * passes the destination straight through and emits NEITHER, which is what the Linux
  * original does.  Do NOT reintroduce the explicit-retbuf form.
+ *
+ * The reachability selection is Q3's text: each failed check clears `reachnum`
+ * and one `if (!reachnum)` block fetches a new one (the .so still tests the
+ * just-zeroed slot), the empty `if (!AAS_AreaReachability(...))` whose DEBUG print
+ * is compiled out (the compare flushes the pending argument pop, which the .so
+ * shows), `AAS_Time() + BotReachabilityTime(&reach)` evaluated in that order, and
+ * the trailing `VectorCopy`.  IDA's goto web, its interleaved int copy of the
+ * origin and its `v19` float temp each matched the DLL too, but not the .so.
  */
 bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *goal, int travelflags)
 {
   int v8; // eax
   int reachnum; // ebp
-  int v12; // eax
-  int v14; // ecx
-  int v15; // eax
-  int v17; // ecx
-  int v18; // edx
-  float v19; // [esp+10h] [ebp-2A0h]
   aas_reachability_t reach; // [esp+14h] [ebp-29Ch] BYREF
   aas_reachability_t lastreach; // [esp+70h] [ebp-240h] BYREF
   bot_moveresult_t moveresult; // [esp+40h] [ebp-270h] BYREF (was v21 — result accumulator)
@@ -1675,29 +1679,38 @@ bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *g
       reachnum = movestate->lastreachnum;
       if ( reachnum )
       {
-        reach = AAS_ReachabilityFromNum(movestate->lastreachnum);
-        if ( (travelflags & AAS_TravelFlagForType(reach.traveltype)) != 0 )
+        reach = AAS_ReachabilityFromNum(reachnum);
+        if ( !(travelflags & AAS_TravelFlagForType(reach.traveltype)) )
         {
-          if ( reach.traveltype == TRAVEL_GRAPPLEHOOK )
-          {
-            if ( AAS_Time() <= movestate->reachability_time && (movestate->moveflags & MFL_GRAPPLERESET) == 0 )
-              goto LABEL_27;
-          }
-          else if ( reach.traveltype == TRAVEL_ELEVATOR )
-          {
-            if ( movestate->areanum != reach.areanum && AAS_Time() <= movestate->reachability_time )
-              goto LABEL_27;
-          }
-          else if ( movestate->lastgoalareanum == goal->areanum
-                 && AAS_Time() <= movestate->reachability_time
-                 && movestate->lastareanum == movestate->areanum )
-          {
-            goto LABEL_27;
-          }
+          reachnum = 0;
+        }
+        else if ( reach.traveltype == TRAVEL_GRAPPLEHOOK )
+        {
+          if ( movestate->reachability_time < AAS_Time() || (movestate->moveflags & MFL_GRAPPLERESET) )
+            reachnum = 0;
+        }
+        else if ( reach.traveltype == TRAVEL_ELEVATOR )
+        {
+          if ( movestate->areanum == reach.areanum || movestate->reachability_time < AAS_Time() )
+            reachnum = 0;
+        }
+        else
+        {
+          if ( movestate->lastgoalareanum != goal->areanum
+            || movestate->reachability_time < AAS_Time()
+            || movestate->lastareanum != movestate->areanum )
+            reachnum = 0;
         }
       }
-      AAS_AreaReachability(movestate->areanum);
-      v12 = BotGetReachabilityToGoal(
+      if ( !reachnum )
+      {
+        if ( !AAS_AreaReachability(movestate->areanum) )
+        {
+#ifdef DEBUG
+          botimport.Print(PRT_MESSAGE, "area %d no reachability\n", movestate->areanum);
+#endif
+        }
+        reachnum = BotGetReachabilityToGoal(
               movestate->origin,
               movestate->areanum,
               movestate->lastgoalareanum,
@@ -1708,23 +1721,19 @@ bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *g
               movestate->avoidreachtries,
               goal,
               travelflags);
-      reachnum = v12;
-      movestate->reachareanum = movestate->areanum;
-      movestate->jumpreach = 0;
-      movestate->moveflags &= ~MFL_GRAPPLERESET;
-      if ( v12 )
-      {
-        reach = AAS_ReachabilityFromNum(v12);
-        v19 = (float)BotReachabilityTime(&reach);
-        movestate->reachability_time = AAS_Time() + v19;
-        BotAddToAvoidReach(movestate, reachnum, 6.0);
+        movestate->reachareanum = movestate->areanum;
+        movestate->jumpreach = 0;
+        movestate->moveflags &= ~MFL_GRAPPLERESET;
+        if ( reachnum )
+        {
+          reach = AAS_ReachabilityFromNum(reachnum);
+          movestate->reachability_time = AAS_Time() + BotReachabilityTime(&reach);
+          BotAddToAvoidReach(movestate, reachnum, 6.0);
+        }
       }
-LABEL_27:
-      v14 = movestate->areanum;
       movestate->lastreachnum = reachnum;
-      v15 = goal->areanum;
-      movestate->lastareanum = v14;
-      movestate->lastgoalareanum = v15;
+      movestate->lastgoalareanum = goal->areanum;
+      movestate->lastareanum = movestate->areanum;
       if ( reachnum )
       {
         reach = AAS_ReachabilityFromNum(reachnum);
@@ -1804,12 +1813,8 @@ LABEL_27:
     }
   }
   if ( moveresult.blocked )
-    movestate->reachability_time = movestate->reachability_time - movestate->thinktime * 10.0f;
-  v17 = *(int *)&movestate->origin[1];
-  v18 = *(int *)&movestate->origin[2];
-  movestate->lastorigin[0] = movestate->origin[0];
-  *(int *)&movestate->lastorigin[1] = v17;
-  *(int *)&movestate->lastorigin[2] = v18;
+    movestate->reachability_time -= 10 * movestate->thinktime;
+  VectorCopy(movestate->origin, movestate->lastorigin);
   return moveresult;
 }
 

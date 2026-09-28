@@ -381,71 +381,24 @@ void AAS_FreeRoutingCaches(void)
   AAS_FreeAllPortalCache();
 }
 
+/* Sweeps every routing cache older than 15 seconds and frees it -- cluster-area
+ * caches first, then the per-area portal caches.  Q3 has no counterpart (it evicts
+ * one cache at a time under memory pressure), so there is no name to take; the
+ * identifier is the symbol gladi386.so ships.  DEAD in Gladiator.
+ *
+ * ONE function in both originals, from one text: the DLL's sub_10019570 calls
+ * AAS_FreeRoutingCache, and gladi386.so's F524 calls FreeMemory only because gcc 2.7
+ * inlines AAS_FreeRoutingCache (a bare FreeMemory) into it.  Both re-read
+ * clusters[i].numareas per iteration and unlink through the cache's own prev/next
+ * fields (+0x20/+0x24).  External: cl.exe /O2 drops an unreferenced static, and the
+ * DLL kept this through /INCREMENTAL.
+ *
+ * Open PE residual (instruction counts equal): the age test.  gcc's compare() expands
+ * its operands in order, so the .so's load of cache->time BEFORE the AAS_Time() call
+ * pins `cache->time < AAS_Time() - 15.0`; cl.exe then evaluates the load first too and
+ * spills it across the call, where the DLL calls first.  `AAS_Time() - 15.0 >
+ * cache->time`, `- 15`, casts, parens and `!(>=)` all lose one side or the other. */
 // gladiator.dll: 10019570..100196AF
-// gladi386.so:   absent
-/* Walk both routing caches and free every aas_routingcache_t whose .time is older
- * than AAS_Time() - 15.0 s.  Nearly the same instruction stream as Q3's equivalent.
- *
- * numclusters/numareas are re-fetched inside the loop tail (the compiler cannot
- * prove FreeMemory does not alias them) — preserved.
- *
- * DEAD in Gladiator. */
-static void sub_10019570(void)
-{
-  int i, j, numareas_in_cluster;
-  aas_routingcache_t *cache, *nextcache, *prev;
-
-  for (i = 0; i < aasworld.numclusters; i++) {
-    numareas_in_cluster = aasworld.clusters[i].numareas;
-    for (j = 0; j < numareas_in_cluster; j++) {
-      cache = aasworld.clusterareacache[i][j];
-      while (cache) {
-        nextcache = cache->next;
-        if (AAS_Time() - 15.0 > cache->time) {
-          prev = cache->prev;
-          if (prev)
-            prev->next = nextcache;
-          else
-            aasworld.clusterareacache[i][j] = nextcache;
-          if (nextcache)
-            nextcache->prev = prev;
-          AAS_FreeRoutingCache(cache);
-        }
-        cache = nextcache;
-      }
-    }
-  }
-
-  for (i = 0; i < aasworld.numareas; i++) {
-    cache = aasworld.portalcache[i];
-    while (cache) {
-      nextcache = cache->next;
-      if (AAS_Time() - 15.0 > cache->time) {
-        prev = cache->prev;
-        if (prev)
-          prev->next = nextcache;
-        else
-          aasworld.portalcache[i] = nextcache;
-        if (nextcache)
-          nextcache->prev = prev;
-        AAS_FreeRoutingCache(cache);
-      }
-      cache = nextcache;
-    }
-  }
-}
-
-#ifndef _WIN32
-/* F524 @ 0x000270e8, 403 bytes.  Sweeps every routing cache older than 15 seconds
- * and frees it — cluster-area caches first, then the per-area portal caches.  Q3 has
- * no counterpart (it evicts one cache at a time under memory pressure), so there is
- * no name to take; the identifier is the symbol gladi386.so ships.
- *
- * From the disassembly: cluster stride 12 (aas_cluster_t) with numareas at +0, cache
- * prev/next at +0x20/+0x24, the threshold a QWORD 15.0 at .rodata 0x571e0, and the
- * second loop bounded by numareas because portalcache is indexed by area, not by
- * portal.  It frees through FreeMemory directly, not through a wrapper. */
-// gladiator.dll: absent
 // gladi386.so:   000270E8..0002727B
 void __cdecl F524(void)
 {
@@ -467,7 +420,7 @@ void __cdecl F524(void)
             aasworld.clusterareacache[i][j] = cache->next;
           if ( cache->next )
             cache->next->prev = cache->prev;
-          FreeMemory(cache);
+          AAS_FreeRoutingCache(cache);
         }
       }
     }
@@ -485,11 +438,13 @@ void __cdecl F524(void)
           aasworld.portalcache[i] = cache->next;
         if ( cache->next )
           cache->next->prev = cache->prev;
-        FreeMemory(cache);
+        AAS_FreeRoutingCache(cache);
       }
     }
   }
 } //end of the function F524
+
+#ifndef _WIN32
 
 /* F525 @ 0x0002727c, 57 bytes.  Appends a routing update to the FIFO that
  * AAS_UpdateAreaRoutingCache / AAS_UpdatePortalRoutingCache drain.  Q3 writes this

@@ -48,10 +48,9 @@ int __cdecl AAS_ClusterAreaNum(int cluster, int areanum);
 float __cdecl AAS_RoutingTime(void);
 #ifndef _WIN32
 void __cdecl F525(aas_routingupdate_t **updateliststart, aas_routingupdate_t **updatelistend, aas_routingupdate_t *update);
-void __cdecl F524(void);
 #endif
+void __cdecl F524(void);
 void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache);
 void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache);
-static void sub_10019570(void);
 
 #endif /* BOTLIB_BE_AAS_ROUTE_H */

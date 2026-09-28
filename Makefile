@@ -472,6 +472,7 @@ endif
 # between botlib.o and the glue objects -- the same order build_oracle_dll.sh's
 # SPLIT_TUS uses -- so both builds lay the image out the same way.
 BOTLIB_OBJS_ = \
+	be_aas_bsphl.o \
 	be_aas_bspq2.o \
 	be_aas_cluster.o \
 	be_aas_debug.o \
@@ -488,6 +489,7 @@ BOTLIB_OBJS_ = \
 	be_aas_sound.o \
 	be_ai2_dmnet.o \
 	be_ai2_dmq2.o \
+	be_ai2_dmhl.o \
 	be_ai2_main.o \
 	be_ai_char.o \
 	be_ai_chat.o \

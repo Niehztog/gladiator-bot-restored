@@ -12,11 +12,18 @@
  * no exported data at all -- so the gap belongs to this object.
  *
  * WHAT IS AND IS NOT EVIDENCE.  Name, size, section and position are read
- * straight out of the image.  The TYPE is not: `botai` has NO reference
- * anywhere in either 1999 image, so nothing constrains its layout, and no
- * struct in this tree is 556 bytes.  It is therefore declared as a size-exact
- * byte array rather than guessed at.  If a use is ever found, retype it then.
+ * straight out of the image.  The TYPE is only half constrained: `botai` has NO
+ * reference anywhere in either 1999 image and no struct in this tree is 556 bytes,
+ * but its ALIGNMENT is fixed by the link.  binutils 2.9.1's ld treats a common's
+ * declared alignment of 1 as "unknown" and falls back to min(log2(size), 4), so
+ * every `char[]` common of 16 bytes or more lands 16-aligned (nodeswitch and
+ * com_token do, in both images) -- while the real `botai` sits at a 4-aligned,
+ * not 16-aligned, offset.  So it was not a char array: its element type had
+ * alignment 2 or 4.  `int[139]` is the neutral 556-byte choice.  As `char[556]`
+ * the oracle padded 12 bytes in front of it, shifting every .bss object up to
+ * l_precomp's; with it, gladi386_oracle.so's .bss layout is identical to the real
+ * one, object for object.  If a use is ever found, retype it then.
  */
 #include "botlib_port.h"
 
-char botai[556];   /* unreferenced in BOTH images -- see the note above */
+int botai[139];   /* 556 bytes; unreferenced in BOTH images -- see the note above */

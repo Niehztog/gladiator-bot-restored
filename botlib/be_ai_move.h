@@ -51,7 +51,7 @@ float __cdecl AngleDiff(float ang1, float ang2);
 void __cdecl BotAddToAvoidReach(bot_movestate_t *ms, int number, float avoidtime);
 int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, vec3_t dir, float speed);
 int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *moveresult);
-bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult);
+void __cdecl BotClearMoveResult(bot_moveresult_t *moveresult);
 bot_moveresult_t __cdecl BotFinishTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach);
 bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach);
 bot_moveresult_t __cdecl BotFinishTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach);

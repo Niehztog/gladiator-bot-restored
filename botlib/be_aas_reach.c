@@ -64,11 +64,17 @@ int reach_walk; // weak
  * those four travel types are the Q3-era ones Gladiator does not have -- so
  * only the name, size and neighbourhood are evidence; the `int` type is by
  * analogy with the eleven siblings, every one of which is a counter here.
- * (globwiring.py / dataaudit.py, 2026-08-16.) */
-int reach_rampjump;    // weak -- unreferenced in BOTH images
-int reach_bfgjump;     // weak -- unreferenced in BOTH images
+ * (globwiring.py / dataaudit.py, 2026-08-16.)
+ *
+ * Their ORDER is evidence too.  Being unreferenced, each reaches gladi386.so's
+ * .dynsym only through its `.comm` line, which gcc 2.7 writes in definition order at
+ * the end of the TU -- and the real image lists doublejump, rampjump, strafejump,
+ * bfgjump: Q3's be_aas_reach.c order for exactly these four.  (Their .bss addresses
+ * are ld's common allocation, not definition order.) */
 int reach_doublejump;  // weak -- unreferenced in BOTH images
+int reach_rampjump;    // weak -- unreferenced in BOTH images
 int reach_strafejump;  // weak -- unreferenced in BOTH images
+int reach_bfgjump;     // weak -- unreferenced in BOTH images
 
 // gladiator.dll: 10010F60..10010FA3
 // gladi386.so:   0001DAFC..0001DBC0

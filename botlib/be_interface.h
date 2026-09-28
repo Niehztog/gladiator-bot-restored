@@ -74,7 +74,7 @@ typedef struct botstate_block_s {
     int       setup;        /* botlibsetup    @0x10064020 */
     int       num_entities; /* maxentities    @0x10064024 */
     int       num_clients;  /* maxclients     @0x10064028 */
-    int       bottime;      /* dword_1006402C @0x1006402C */
+    float     time;         /* dword_1006402C @0x1006402C: Q3's botlibglobals.time (IDA typed it int) */
     libvar_t *libvars[16];  /* sv_friction .. sv_maxwaterjump @0x10064030.. */
 } botstate_block_t;
 

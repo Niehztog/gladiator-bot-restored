@@ -38,7 +38,6 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
-bot_clientsettings_t *clientsettings; /* per-client {netname[16], skin[128]} = 144 B */
 libvar_t *ctf; /* libvar handle */
 
 bot_goal_t ctf_flag2; /* 0x100643E0 blue flag goal (ai_dmq3.c; was unk_100643E0) */
@@ -50,16 +49,6 @@ libvar_t *usehook; /* libvar handle */
 libvar_t *techs; /* libvar handle */
 
 libvar_t *rocketjump; /* libvar handle */
-
-/* G_SetMovedir's four direction constants, 12 bytes each, in the original .data
- * order — the same order and values as game/g_utils.c:342-345, from which
- * BotSetMovedir was copied.  Non-static in Mr. Elusive's sources, so all four
- * survive by name in gladi386.so's .dynsym, each a 12-byte OBJECT, confirming
- * float[3] rather than three separate scalars. */
-float VEC_UP[3]       = { 0.0f, -1.0f,  0.0f };
-float MOVEDIR_UP[3]   = { 0.0f,  0.0f,  1.0f };
-float VEC_DOWN[3]     = { 0.0f, -2.0f,  0.0f };
-float MOVEDIR_DOWN[3] = { 0.0f,  0.0f, -1.0f };
 
 libvar_t *ch; /* libvar handle */
 libvar_t *teamplay; /* libvar handle */
@@ -1538,6 +1527,20 @@ bsp_entity_t *__cdecl BotEntityToActivate(int entitynum)
   return NULL;
 }
 
+/* G_SetMovedir's four direction constants, 12 bytes each, in the original .data
+ * order — the same order and values as game/g_utils.c:342-345, from which
+ * BotSetMovedir was copied.  Non-static in Mr. Elusive's sources, so all four
+ * survive by name in gladi386.so's .dynsym, each a 12-byte OBJECT, confirming
+ * float[3] rather than three separate scalars.
+ *
+ * Defined HERE, directly above BotSetMovedir, as in Q3's ai_dmq3.c: gladi386.so's
+ * .dynsym, which lists each global where its TU first mentions it, has all four after
+ * BotEntityToActivate and `entities` -- not at the top of the file. */
+float VEC_UP[3]       = { 0.0f, -1.0f,  0.0f };
+float MOVEDIR_UP[3]   = { 0.0f,  0.0f,  1.0f };
+float VEC_DOWN[3]     = { 0.0f, -2.0f,  0.0f };
+float MOVEDIR_DOWN[3] = { 0.0f,  0.0f, -1.0f };
+
 // gladiator.dll: 10024FD0..1002504D
 // gladi386.so:   0002F540..0002F5E2
 void __cdecl BotSetMovedir(float *angles, float *movedir)
@@ -1893,7 +1896,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
 {
 
   int v3; // eax
-  double v5; // st7
+  float rnd;
 
   if ( BotCTFCarryingFlag(bs) )
   {
@@ -1910,13 +1913,17 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
     if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression(bs) >= 50.0f )
     {
       bs->teammessage_time = AAS_Time() + 2 * random();
-      v5 = (rand() & 0x7FFF) * 0.0000305185f;
-      if ( v5 < 0.33f && ctf_flag1.areanum && ctf_flag2.areanum )
+      /* Q3's `rnd = random();` into a float.  IDA's `(rand() & 0x7FFF) *
+       * 0.0000305185f` rounded to a different float (0x380000FD, not 1/32767's
+       * 0x38000100); the correct constant written that way lets gcc CSE it with
+       * the random() above, which the .so does not do. */
+      rnd = random();
+      if ( rnd < 0.33 && ctf_flag1.areanum && ctf_flag2.areanum )
       {
         bs->ltgtype = 4;
         bs->teamgoal_time = AAS_Time() + 180.0f;
       }
-      else if ( v5 < 0.66 && ctf_flag1.areanum && ctf_flag2.areanum )
+      else if ( rnd < 0.66 && ctf_flag1.areanum && ctf_flag2.areanum )
       {
         if ( BotCTFTeam(bs) == 1 )
           memcpy(&bs->teamgoal, &ctf_flag1, 0x38u);

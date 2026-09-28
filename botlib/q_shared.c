@@ -1567,41 +1567,9 @@ float flt_100631A8;         /* 0x100631A8 */
 int   dword_10063388;       /* 0x10063388 */
 #endif
 
-/* A 1-arg in-place negate, kept callable by #undef'ing q_shared.h's 2-arg
- * VectorNegate macro in every botlib TU.
- *
- * ABSENT FROM BOTH ORIGINALS, and the name is wrong: this is a duplicate of
- * VectorInverse above.  The function the botlib actually calls (thunk
- * 0x1000147E -> 0x10043540, from be_aas_sample.c and be_aas_reach.c) is
- * VectorInverse, proven four ways: 1999 `gladq2_src/q_shared.h` declares
- * `void VectorInverse(vec3_t)` as the only 1-arg negate -- VectorNegate is a
- * 2-arg MACRO there, so a 1-arg call cannot reach it; 0x10043540 sits between
- * VectorLength (0x10043500) and VectorScale (0x10043570), exactly where
- * gladq2_src/q_shared.c:756 defines VectorInverse; gladi386.so has the same
- * function in the same relative position and no VectorNegate symbol at all;
- * and q_shared.obj's 58 DLL slots are each claimed by exactly one of our
- * functions, so it cannot be both (an added VectorNegate would have made 59 --
- * with /INCREMENTAL there is no /OPT:REF to drop the unreferenced one).
- *
- * So this body is surplus: our q_shared.obj carries one function the original
- * does not.  Both call sites now call VectorInverse (2026-09); the body stays
- * only because removing a function shifts every later address in
- * q_shared.obj, and nothing calls it any more.  (Content alignment of the whole
- * q_shared.obj region, 2026-08-17.) */
-#undef VectorNegate
-/* No __cdecl here: that spelling comes from botlib's gladiator.dll.h,
- * which this file does not include, and it is MSVC's default anyway. */
-// gladiator.dll: absent
-// gladi386.so:   absent
-float *VectorNegate(float *v)
-{
-  float *result; // eax
-
-  result = v;
-  *v = -*v;
-  v[1] = -v[1];
-  v[2] = -v[2];
-  return result;
-}
+/* (A 1-arg `VectorNegate` used to sit here.  Neither original has one: the in-place
+ * negate at 0x10043540 is VectorInverse above -- see [[q_shared_rules]].  It had no
+ * caller left, and in the Linux build it was the one .dynsym entry gladi386.so does
+ * not have.) */
 
 #endif /* BOTLIB */

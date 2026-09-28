@@ -24,8 +24,14 @@
 #if defined(WIN32) || defined(_WIN32)
 #include <windows.h>
 #else
-/* MSVC CRT compat shims for Linux */
+/* MSVC CRT compat shims for Linux -- none of them under the 1999 compiler.
+ * _isnan is the same case as min/max below: the shipped gamei386.so imports
+ * `_isnan` itself (its .dynstr has "_isnan", not "isnan"), so m_stalker_rogue.c's
+ * calls went to an implicitly declared `int _isnan()` with the float promoted to
+ * double -- the code isnan(double) gets too, under a different name. */
+#if !(defined(__GNUC__) && __GNUC__ < 3)
 #define _isnan(x) isnan(x)
+#endif
 /* min/max are NOT shimmed under the 1999 compiler.  MSVC gets them as macros
  * from <windows.h>/<stdlib.h>, but the Linux build had no declaration at all, so
  * every `min (a, b)` compiled to a call to an implicitly-declared `int min()`

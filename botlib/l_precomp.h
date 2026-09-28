@@ -111,6 +111,24 @@ int __cdecl PC_Directive_eval(source_t *source);
 int __cdecl PC_Directive_evalfloat(source_t *source);
 int __cdecl PC_Directive_if(source_t *source);
 /* indent types, as Q3 botlib l_precomp.h */
+/* Q3's l_precomp.h path separators.  One source for both 1999 builds: the DLL's
+ * PC_ConvertPath writes '\\' and PC_SetIncludePath appends "\\", gladi386.so writes
+ * '/' and appends "/" (its .rodata has the "/" string). */
+#ifndef PATH_SEPERATORSTR
+	#if defined(WIN32)|defined(_WIN32)|defined(__NT__)|defined(__WINDOWS__)|defined(__WINDOWS_386__)
+		#define PATHSEPERATOR_STR		"\\"
+	#else
+		#define PATHSEPERATOR_STR		"/"
+	#endif
+#endif
+#ifndef PATH_SEPERATORCHAR
+	#if defined(WIN32)|defined(_WIN32)|defined(__NT__)|defined(__WINDOWS__)|defined(__WINDOWS_386__)
+		#define PATHSEPERATOR_CHAR		'\\'
+	#else
+		#define PATHSEPERATOR_CHAR		'/'
+	#endif
+#endif
+
 #define INDENT_IF       0x0001
 #define INDENT_ELSE     0x0002
 #define INDENT_ELIF     0x0004

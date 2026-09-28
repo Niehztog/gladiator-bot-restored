@@ -22,60 +22,12 @@
 #include "be_interface.h"
 #include "l_memory.h"
 #include "l_script.h"
+#include "l_log.h"   /* in Q3's BOTLIB include list; cl.exe tie-breaks see its seven
+                       * declarations -- without them PC_ReadDefineParms differs */
 #include "l_utils.h"
 
 define_t *globaldefines;
 
-/* Preprocessor directive table at VA 0x1005F260 — a {char*, int(*)(int)} array in
- * .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_if_def(src,
- * INDENT_IFDEF/INDENT_IFNDEF); Q3 has exactly this trio and the same INDENT_*
- * values, and gladi386.so exports all three, so the wrappers are the original's own
- * functions.  `directive_t` / `directives` / `dollardirectives` are the original
- * names, from gladi386.so's .dynsym (both tables 160 B = Q3's `directive_t
- * directives[20]`).
- *
- * Deliberately NOT `static`: .dynsym lists both tables as exported `D` symbols,
- * which a file-static array can never be.  That also drives PC_ReadDirective's
- * codegen — gcc -fPIC addresses a non-static (potentially-interposable) global
- * through a real GOT pointer slot, where a `static` array gets a direct GOT-relative
- * address with no extra indirection. */
-typedef struct { const char *name; int (__cdecl *handler)(intptr_t); } directive_t;
-/* [20], not []: gladi386.so's .dynsym gives `directives` st_size 160 = 20*8,
- * and Q3 `l_precomp.c:2490` declares exactly `directive_t directives[20]` with
- * only 15 initialisers.  Found by dataaudit.py 2026-08-16 (we had 120 B). */
-directive_t directives[20] = {
-    {"if",        PC_Directive_if},   /* 0x1003CCB0 */
-    {"ifdef",     PC_Directive_ifdef},   /* 0x1003B7B0 */
-    {"ifndef",    PC_Directive_ifndef},  /* 0x1003B7D0 */
-    {"elif",      PC_Directive_elif},         /* 0x1003CC10 */
-    {"else",      PC_Directive_else},         /* 0x1003B7F0 */
-    {"endif",     PC_Directive_endif},         /* 0x1003B880 */
-    {"include",   PC_Directive_include},         /* 0x1003A7A0 */
-    {"define",    (int(*)(intptr_t))PC_Directive_define},            /* 0x1003ADE0 */
-    {"undef",     PC_Directive_undef},             /* 0x1003AC30 */
-    {"line",      (int(*)(intptr_t))PC_Directive_line}, /* 0x1003CD00 */
-    {"error",     PC_Directive_error},         /* 0x1003CD30 */
-    {"pragma",    PC_Directive_pragma},         /* 0x1003CD80 */
-    {"eval",      PC_Directive_eval}, /* 0x1003CE90 */
-    {"evalfloat", PC_Directive_evalfloat},         /* 0x1003CF80 */
-    {NULL, NULL}
-};
-/* IDA named the table's first two FIELDS as if they were separate objects
- * (`off_1005F260` = directives[0].name, `off_1005F264` = directives[0].handler).
- * They are not: gladi386.so has no such symbols, and nothing here referenced
- * the aliases once `directives` itself was recovered.  Removed 2026-08-17. */
-/* $-directive dispatch table at VA 0x1005F300: 2 entries + NULL, walked by
- * PC_ReadDollarDirective as a stride-2 pointer array.  Same directive_t element type
- * as `directives` above. */
-/* [20] for the same reason as `directives` above — st_size 160 = 20*8, and
- * Q3 `l_precomp.c:2603` is `directive_t dollardirectives[20]` with three
- * initialisers.  We had 24 B. */
-directive_t dollardirectives[20] = {
-    {"evalint",   PC_DollarDirective_evalint},   /* 0x100011D6 thunk → PC_DollarDirective_evalint */
-    {"evalfloat", PC_DollarDirective_evalfloat},        /* 0x10001B0E thunk → PC_DollarDirective_evalfloat     */
-    {NULL, NULL}
-};
-/* Same IDA field-as-object artifact as off_1005F260/64 above; removed. */
 
 // gladiator.dll: 10039200..1003924B
 // gladi386.so:   0004ADDC..0004AE42
@@ -736,14 +688,7 @@ void __cdecl PC_ConvertPath(char *path)
   for ( ptr = path; *ptr; )
   {
     if ( *ptr == '/' || *ptr == '\\' )
-      /* Two-week source drift (see AAS_Trace in be_aas_bspq2.c): the Windows DLL
-       * normalizes to backslash, but gladi386.so writes forward slash here — Quake's
-       * own file/VFS layer is always '/'-separated regardless of host OS. */
-#ifdef _WIN32
-      *ptr = '\\';
-#else
-      *ptr = '/';
-#endif
+      *ptr = PATHSEPERATOR_CHAR;   /* '\\' in the DLL, '/' in gladi386.so */
     ptr++;
   }
 }
@@ -2007,6 +1952,49 @@ int __cdecl PC_Directive_evalfloat(source_t *source)
   return 1;
 }
 
+/* Preprocessor directive table at VA 0x1005F260 — a {char*, int(*)(int)} array in
+ * .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_if_def(src,
+ * INDENT_IFDEF/INDENT_IFNDEF); Q3 has exactly this trio and the same INDENT_*
+ * values, and gladi386.so exports all three, so the wrappers are the original's own
+ * functions.  `directive_t` / `directives` / `dollardirectives` are the original
+ * names, from gladi386.so's .dynsym (both tables 160 B = Q3's `directive_t
+ * directives[20]`).
+ *
+ * Deliberately NOT `static`: .dynsym lists both tables as exported `D` symbols,
+ * which a file-static array can never be.  That also drives PC_ReadDirective's
+ * codegen — gcc -fPIC addresses a non-static (potentially-interposable) global
+ * through a real GOT pointer slot, where a `static` array gets a direct GOT-relative
+ * address with no extra indirection.
+ *
+ * Defined HERE, between PC_Directive_evalfloat and PC_ReadDirective, as in Q3: gcc 2.7
+ * emits an initialised table's strings where the table is defined, and gladi386.so's
+ * .rodata has these names right after PC_Directive_evalfloat's "%1.2f". */
+typedef struct { const char *name; int (__cdecl *handler)(intptr_t); } directive_t;
+/* [20], not []: gladi386.so's .dynsym gives `directives` st_size 160 = 20*8,
+ * and Q3 `l_precomp.c:2490` declares exactly `directive_t directives[20]` with
+ * only 15 initialisers.  Found by dataaudit.py 2026-08-16 (we had 120 B). */
+directive_t directives[20] = {
+    {"if",        PC_Directive_if},   /* 0x1003CCB0 */
+    {"ifdef",     PC_Directive_ifdef},   /* 0x1003B7B0 */
+    {"ifndef",    PC_Directive_ifndef},  /* 0x1003B7D0 */
+    {"elif",      PC_Directive_elif},         /* 0x1003CC10 */
+    {"else",      PC_Directive_else},         /* 0x1003B7F0 */
+    {"endif",     PC_Directive_endif},         /* 0x1003B880 */
+    {"include",   PC_Directive_include},         /* 0x1003A7A0 */
+    {"define",    (int(*)(intptr_t))PC_Directive_define},            /* 0x1003ADE0 */
+    {"undef",     PC_Directive_undef},             /* 0x1003AC30 */
+    {"line",      (int(*)(intptr_t))PC_Directive_line}, /* 0x1003CD00 */
+    {"error",     PC_Directive_error},         /* 0x1003CD30 */
+    {"pragma",    PC_Directive_pragma},         /* 0x1003CD80 */
+    {"eval",      PC_Directive_eval}, /* 0x1003CE90 */
+    {"evalfloat", PC_Directive_evalfloat},         /* 0x1003CF80 */
+    {NULL, NULL}
+};
+/* IDA named the table's first two FIELDS as if they were separate objects
+ * (`off_1005F260` = directives[0].name, `off_1005F264` = directives[0].handler).
+ * They are not: gladi386.so has no such symbols, and nothing here referenced
+ * the aliases once `directives` itself was recovered.  Removed 2026-08-17. */
+
 // gladiator.dll: 1003D090..1003D18B
 // gladi386.so:   0004FAF4..0004FC02
 int __cdecl PC_ReadDirective(source_t *source)
@@ -2092,6 +2080,20 @@ int __cdecl PC_DollarDirective_evalfloat(source_t *source)
     UnreadSignToken(source);
   return 1;
 }
+
+/* $-directive dispatch table at VA 0x1005F300: 2 entries + NULL, walked by
+ * PC_ReadDollarDirective as a stride-2 pointer array.  Same directive_t element type
+ * as `directives`.  Defined right before PC_ReadDollarDirective, as in Q3 (the .so's
+ * "evalint" string sits just ahead of that function's own strings). */
+/* [20] for the same reason as `directives` above — st_size 160 = 20*8, and
+ * Q3 `l_precomp.c:2603` is `directive_t dollardirectives[20]` with three
+ * initialisers.  We had 24 B. */
+directive_t dollardirectives[20] = {
+    {"evalint",   PC_DollarDirective_evalint},   /* 0x100011D6 thunk → PC_DollarDirective_evalint */
+    {"evalfloat", PC_DollarDirective_evalfloat},        /* 0x10001B0E thunk → PC_DollarDirective_evalfloat     */
+    {NULL, NULL}
+};
+/* Same IDA field-as-object artifact as off_1005F260/64 above; removed. */
 
 // gladiator.dll: 1003D420..1003D526
 // gladi386.so:   0004FFE0..00050127
@@ -2340,7 +2342,7 @@ void __cdecl PC_SetIncludePath(source_t *source, char *path)
   if ( source->includepath[strlen(source->includepath) - 1] != '\\'
     && source->includepath[strlen(source->includepath) - 1] != '/' )
   {
-    strcat(source->includepath, "\\");
+    strcat(source->includepath, PATHSEPERATOR_STR);
   }
 }
 

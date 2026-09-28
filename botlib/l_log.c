@@ -137,12 +137,15 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
    * the "\r\n" fprintf, interleaving with the fflush setup as the original does. */
   if ( logfile.fp )
   {
+    /* Q3's text.  IDA's printed-out reciprocals (0.00027777778450399637f) parse one
+     * ULP low under gcc 2.7; `/ 60 / 60` lets -ffast-math fold the exact 1/3600. */
     fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ",
             logfile.numwrites,
-            (int)(*(float *)&botlibglobals.bottime * 0.00027777778450399637f),
-            (int)(*(float *)&botlibglobals.bottime * 0.01666666753590107f),
-            (int)*(float *)&botlibglobals.bottime,
-            (int)(100.0f * *(float *)&botlibglobals.bottime) - 100 * (int)*(float *)&botlibglobals.bottime);
+            (int) (botlibglobals.time / 60 / 60),
+            (int) (botlibglobals.time / 60),
+            (int) (botlibglobals.time),
+            (int) ((int) (botlibglobals.time * 100)) -
+                    ((int) botlibglobals.time) * 100);
     va_start(va, Format);
     vfprintf(logfile.fp, Format, va);
     va_end(va);

@@ -186,15 +186,29 @@ void sub_10041600(void)
   }
 }
 
+/* Declared here, not with the other kernel32 imports in l_utils.h: every TU that
+ * includes that header shifts cl.exe tie-breaks with each declaration in scope, and one
+ * more there flips AAS_TraceBSPModel in be_aas_bspq2.c (probed 2026-09-28). */
+__declspec(dllimport) unsigned int __stdcall GetVersion(void);
+
 // gladiator.dll: 10041650..1004166F
 // gladi386.so:   absent
-/* Cached MSVC _osplatform-style helper: 1 on Windows NT (top bit of GetVersion()
- * clear), 0 on Windows 9x.  The cache slot starts at -1.  DEAD in Gladiator. */
-static int sub_10041650(void)
+/* Cached platform test: 1 on Windows NT (top bit of GetVersion() clear), 0 on
+ * Windows 9x; the cache starts at -1.  The shape of Info-ZIP's win32 IsWinNT(), which
+ * this windll path vendors -- the if/else is what cl.exe turns into the DLL's
+ * `cmp eax,0x80000000; sbb eax,eax; neg eax`.  DEAD in Gladiator.  External: an
+ * unreferenced static never reaches our DLL, so it was never audited as one. */
+int __cdecl sub_10041650(void)
 {
   static unsigned int cached = 0xFFFFFFFFu;
+
   if ( cached == 0xFFFFFFFFu )
-    cached = 1; /* GetVersion unavailable cross-platform; dead code anyway */
+  {
+    if ( GetVersion() < 0x80000000u )
+      cached = 1;
+    else
+      cached = 0;
+  }
   return (int)cached;
 }
 

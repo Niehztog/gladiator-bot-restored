@@ -527,7 +527,7 @@ int __cdecl Export_BotLibStartFrame(float time)
 {
   if ( !BotLibSetup("BotStartFrame") )
     return 1;
-  *(float *)&botlibglobals.bottime = time;
+  botlibglobals.time = time;
   return AAS_StartFrame(time);
 }
 

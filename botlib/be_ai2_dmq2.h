@@ -14,11 +14,11 @@ int __cdecl FindClientByName(char *name);  /* 1-arg roster substring search (sub
  * 1999 Linux gladi386.so's symbol table sizes each of the four at 12 bytes
  * (`readelf -s`: "12 OBJECT GLOBAL … MOVEDIR_UP"), and BotSetMovedir stays
  * byte-identical (125 B) under the MSVC6 oracle with float[3] + VectorCopy. */
-extern float VEC_UP[3];      /* 0x1005C56C {0,-1, 0} — defined in botlib_structdefs.c */
-extern float MOVEDIR_UP[3];  /* 0x1005C578 {0, 0, 1} — defined in botlib_structdefs.c */
-extern float VEC_DOWN[3];    /* 0x1005C584 {0,-2, 0} — defined in botlib_structdefs.c */
-extern float MOVEDIR_DOWN[3]; /* 0x1005C590 {0, 0,-1} — defined in botlib_structdefs.c */
-extern bot_clientsettings_t *clientsettings;
+extern float VEC_UP[3];      /* 0x1005C56C {0,-1, 0} — defined in be_ai2_dmq2.c, above BotSetMovedir */
+extern float MOVEDIR_UP[3];  /* 0x1005C578 {0, 0, 1} — defined in be_ai2_dmq2.c, above BotSetMovedir */
+extern float VEC_DOWN[3];    /* 0x1005C584 {0,-2, 0} — defined in be_ai2_dmq2.c, above BotSetMovedir */
+extern float MOVEDIR_DOWN[3]; /* 0x1005C590 {0, 0,-1} — defined in be_ai2_dmq2.c, above BotSetMovedir */
+extern bot_clientsettings_t *clientsettings;   /* defined in be_ai2_main.c */
 extern libvar_t *ctf;
 /* CTF flag goals.  BotGetLevelItemGoal fills 48 bytes of each 56-byte
  * bot_goal_t slot; `areanum` doubles as the "flag found" flag (0 = not yet). */
