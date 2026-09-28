@@ -111,9 +111,9 @@ void __cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
   if ( (bs->snapshot.pm_flags & 8) != 0 && bs->snapshot.pm_time > 0 )
     info[24] = v5 | 0x10;
   if ( (bs->snapshot.pm_flags & 1) != 0 )
-    info[12] = 4;
+    info[12] = PRESENCE_CROUCH;
   else
-    info[12] = 2;
+    info[12] = PRESENCE_NORMAL;
   info[13] = *(int *)&bs->viewangles[0];
   info[14] = *(int *)&bs->viewangles[1];
   info[15] = *(int *)&bs->viewangles[2];
@@ -560,7 +560,7 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   VectorCopy(bs->origin, end);
   start[2] = start[2] + 1.0f;
   end[2] = end[2] - 100.0f;
-  AAS_PresenceTypeBoundingBox(4, (float *)mins, (float *)maxs);
+  AAS_PresenceTypeBoundingBox(PRESENCE_CROUCH, (float *)mins, (float *)maxs);
   trace = AAS_Trace(start, (float*)mins, (float*)maxs, end, 4, bs->client);
   if ( trace.ent != 0 )
     return 0;
@@ -1633,7 +1633,7 @@ void __cdecl sub_10025070(void)
       {
         int i;
 
-        AAS_PresenceTypeBoundingBox(4, bboxmins, bboxmaxs);
+        AAS_PresenceTypeBoundingBox(PRESENCE_CROUCH, bboxmins, bboxmaxs);
         for (i = 0; i < 3; i++)
         {
           if (movedir[i] < 0) dist += fabs(movedir[i]) * fabs(bboxmaxs[i]);
@@ -1644,7 +1644,7 @@ void __cdecl sub_10025070(void)
         VectorCopy(goalorigin, start);
         start[2] += 24.0f;
         VectorSet(end, start[0], start[1], start[2] - 100.0f);
-        trace = AAS_TraceClientBBox(start, end, 4, -1);
+        trace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
         if ( !trace.startsolid )
           VectorCopy(trace.endpos, goalorigin);
         AAS_DrawPermanentCross(goalorigin, 4.0f, (int)0xdcdddedf);
@@ -1739,7 +1739,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
         EA_Attack(bs->client);
         return;
       }
-      AAS_PresenceTypeBoundingBox(4, bboxmins, bboxmaxs);
+      AAS_PresenceTypeBoundingBox(PRESENCE_CROUCH, bboxmins, bboxmaxs);
       for (i = 0; i < 3; i++)
       {
         if (movedir[i] < 0) dist += fabs(movedir[i]) * fabs(bboxmaxs[i]);
@@ -1749,7 +1749,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
       VectorCopy(goalorigin, start);
       start[2] += 24;
       VectorSet(end, start[0], start[1], start[2] - 100);
-      trace = AAS_TraceClientBBox(start, end, 4, -1);
+      trace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
       if ( !trace.startsolid )
         VectorCopy(trace.endpos, goalorigin);
       VectorCopy(origin, bs->activategoal.origin);
@@ -1786,7 +1786,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
       VectorCopy(triggerorigin, start);
       start[2] = maxs[2] + 24;
       VectorSet(end, start[0], start[1], start[2] - 100);
-      trace = AAS_TraceClientBBox(start, end, 4, -1);
+      trace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
       if ( !trace.startsolid )
       {
         VectorCopy(trace.endpos, goalorigin);

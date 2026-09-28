@@ -282,7 +282,7 @@ float __cdecl AAS_MaxJumpDistance(float phys_jumpvel)
 // gladi386.so:   0001E224..0001E25B
 int __cdecl AAS_AreaCrouch(int areanum)
 {
-  if ( !(aasworld.areasettings[areanum].presencetype & 2) )
+  if ( !(aasworld.areasettings[areanum].presencetype & PRESENCE_NORMAL) )
     return 1;
   else
     return 0;
@@ -402,7 +402,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
 
   if ( !AAS_AreaSwim(area1num) || !AAS_AreaSwim(area2num) )
     return 0;
-  if ( (aasworld.areasettings[area2num].presencetype & 2) == 0 )
+  if ( (aasworld.areasettings[area2num].presencetype & PRESENCE_NORMAL) == 0 )
     return 0;
   area1 = &aasworld.areas[area1num];
   area2 = &aasworld.areas[area2num];
@@ -943,8 +943,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
       if (water_bestdist < libvar_sv_maxwaterjump->value + 24)
       {
         //waterjumping from or towards a crouch only area is not possible in Quake2
-        if ((aasworld.areasettings[area1num].presencetype & 2) &&
-            (aasworld.areasettings[area2num].presencetype & 2))
+        if ((aasworld.areasettings[area1num].presencetype & PRESENCE_NORMAL) &&
+            (aasworld.areasettings[area2num].presencetype & PRESENCE_NORMAL))
         {
           //create water jump reachability from area1 to area2
           lreach = AAS_AllocReachability();
@@ -1030,7 +1030,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
         start[2] = ground_beststart[2];
         VectorCopy(ground_bestend, end);
         end[2] += 4;
-        trace = AAS_TraceClientBBox(start, end, 2, -1);
+        trace = AAS_TraceClientBBox(start, end, PRESENCE_NORMAL, -1);
         //if no solids were found
         if (!trace.startsolid && trace.fraction >= 1.0)
         {
@@ -1392,7 +1392,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     //
     VectorCopy(teststart, testend);
     testend[2] -= 100;
-    trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
+    trace = AAS_TraceClientBBox(teststart, testend, PRESENCE_NORMAL, -1);
     //
     if (trace.startsolid) return 0;
     if (trace.fraction < 1)
@@ -1408,7 +1408,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     //
     VectorCopy(teststart, testend);
     testend[2] -= 100;
-    trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
+    trace = AAS_TraceClientBBox(teststart, testend, PRESENCE_NORMAL, -1);
     //
     if (trace.startsolid) return 0;
     if (trace.fraction < 1)
@@ -1427,7 +1427,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     if (traveltype == 5) cmdmove[2] = libvar_sv_jumpvel->value;
     else cmdmove[2] = 0;
     //
-    move = AAS_ClientMovementPrediction(-1, beststart, 2, 1, vec3_origin, cmdmove, 3, 30, 0.1, 61, 0);
+    move = AAS_ClientMovementPrediction(-1, beststart, PRESENCE_NORMAL, 1, vec3_origin, cmdmove, 3, 30, 0.1, 61, 0);
     //if prediction time wasn't enough to fully predict the movement
     if (move.frames >= 30) return 0;
     //don't enter slime or lava and don't fall from too high
@@ -1677,7 +1677,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
       start[2] += 5;
       end[2] -= 100;
       //trace without entity collision
-      trace = AAS_TraceClientBBox(start, end, 2, -1);
+      trace = AAS_TraceClientBBox(start, end, PRESENCE_NORMAL, -1);
       //
       trace.endpos[2] += 1;
       area2num = AAS_PointAreaNum(trace.endpos);
@@ -1808,7 +1808,7 @@ void AAS_Reachability_Teleport(void)
     destorigin[2] += 24;
     VectorCopy(destorigin, end);
     end[2] -= 100;
-    trace = AAS_TraceClientBBox(destorigin, end, 4, -1);
+    trace = AAS_TraceClientBBox(destorigin, end, PRESENCE_CROUCH, -1);
     if (trace.startsolid)
     {
       botimport.Print(PRT_ERROR, "teleporter destination (%s) in solid\n", target);
@@ -1819,7 +1819,7 @@ void AAS_Reachability_Teleport(void)
     //the bounding box of the teleporter trigger
     VectorSet(mins, -8, -8, 8);
     VectorSet(maxs, 8, 8, 24);
-    AAS_PresenceTypeBoundingBox(4, bbmins, bbmaxs);
+    AAS_PresenceTypeBoundingBox(PRESENCE_CROUCH, bbmins, bbmaxs);
     /* `origin` is the FIRST argument: it is the operand that stays on the x87 stack
      * (`fld [origin]; fld st(0); fadd [mins]`) and is reused for the maxs add.  With
      * mins/maxs first gcc reloads them and adds st(1) instead. */
@@ -2009,7 +2009,7 @@ void AAS_Reachability_Elevator()
                   start[2] += 32;
                   VectorCopy(toporg, end);
                   end[2] += 1;
-                  trace = AAS_TraceClientBBox(start, end, 4, -1);
+                  trace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
                   if (trace.fraction >= 1) break;
                 } //end if
               } //end if
@@ -2084,7 +2084,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   //only grapple when on the ground or swimming
   if (!AAS_AreaGrounded(area1num) && !AAS_AreaSwim(area1num)) return 0;
   //don't grapple from a crouch area
-  if (!(AAS_AreaPresenceType(area1num) & 2)) return 0;
+  if (!(AAS_AreaPresenceType(area1num) & PRESENCE_NORMAL)) return 0;
   //NOTE: disabled area swim it doesn't work right
   if (AAS_AreaSwim(area1num)) return 0;
   //
@@ -2101,7 +2101,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                 start[0], start[1], start[2]);
     VectorCopy(start, end);
     end[2] -= 1000;
-    trace = AAS_TraceClientBBox(start, end, 4, -1);
+    trace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
     if (trace.startsolid) return 0;
     VectorCopy(trace.endpos, areastart);
   } //end if
@@ -2154,14 +2154,14 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     VectorNormalize(dir);
     VectorMA(areastart, 4, dir, start);
     VectorCopy(bsptrace.endpos, end);
-    trace = AAS_TraceClientBBox(start, end, 2, -1);
+    trace = AAS_TraceClientBBox(start, end, PRESENCE_NORMAL, -1);
     VectorSubtract(trace.endpos, facecenter, dir);
     if (VectorLength(dir) > 24) continue;
     //
     VectorCopy(trace.endpos, start);
     VectorCopy(trace.endpos, end);
     end[2] -= AAS_FallDamageDistance();
-    trace = AAS_TraceClientBBox(start, end, 2, -1);
+    trace = AAS_TraceClientBBox(start, end, PRESENCE_NORMAL, -1);
     if (trace.fraction >= 1) continue;
     //area to end in
     areanum = AAS_PointAreaNum(trace.endpos);
@@ -2313,7 +2313,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
               start[0], start[1], start[2]);
   VectorCopy(start, end);
   end[2] -= 1000;
-  trace = AAS_TraceClientBBox(start, end, 4, -1);
+  trace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
   if (trace.startsolid) return 0;
   VectorCopy(trace.endpos, areastart);
   //
@@ -2351,7 +2351,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
           VectorScale(dir, speed, cmdmove);
           VectorSet(velocity, 0, 0, zvel);
           //
-          move = AAS_ClientMovementPrediction(-1, areastart, 2, 1, velocity, cmdmove, 3, 30, 0.1f, 61, 0);
+          move = AAS_ClientMovementPrediction(-1, areastart, PRESENCE_NORMAL, 1, velocity, cmdmove, 3, 30, 0.1f, 61, 0);
           //if prediction time wasn't enough to fully predict the movement
           //don't enter slime or lava and don't fall from too high
           if (move.frames < 30 && !(move.stopevent & 0x38))
@@ -2492,7 +2492,7 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
             VectorMA(mid, 8, dir, mid);
             VectorCopy(mid, testend);
             testend[2] -= 1000;
-            trace = AAS_TraceClientBBox(mid, testend, 4, -1);
+            trace = AAS_TraceClientBBox(mid, testend, PRESENCE_CROUCH, -1);
             if ( trace.startsolid ) break;
             reachareanum = AAS_PointAreaNum(trace.endpos);
             if ( reachareanum == areanum ) break;

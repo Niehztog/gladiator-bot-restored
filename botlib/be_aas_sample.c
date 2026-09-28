@@ -196,7 +196,7 @@ int __cdecl AAS_PointPresenceType(vec3_t point)
     return 0;
   areanum = AAS_PointAreaNum(point);
   if ( !areanum )
-    return 1;
+    return PRESENCE_NONE;
   return aasworld.areasettings[areanum].presencetype;
 }
 

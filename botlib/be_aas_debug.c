@@ -439,7 +439,7 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     VectorNormalize(dir);
     VectorScale(dir, speed, (float *)cmdmove);
     cmdmove[2] = libvar_sv_jumpvel->value;
-    move = AAS_ClientMovementPrediction(-1, reach->start, 2, 1, vec3_origin, cmdmove, 3, 30, 0.1, 61, 1);
+    move = AAS_ClientMovementPrediction(-1, reach->start, PRESENCE_NORMAL, 1, vec3_origin, cmdmove, 3, 30, 0.1, 61, 1);
     if ( reach->traveltype == 5 ) /* TRAVEL_JUMP only */
     {
       AAS_JumpReachRunStart((intptr_t)reach, (intptr_t)dir);
@@ -458,7 +458,7 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     velocity[0] = 0;
     velocity[1] = 0;
     velocity[2] = zvel;
-    move = AAS_ClientMovementPrediction(-1, reach->start, 2, 1, velocity, cmdmove, 3, 30, 0.1, 61, 1);
+    move = AAS_ClientMovementPrediction(-1, reach->start, PRESENCE_NORMAL, 1, velocity, cmdmove, 3, 30, 0.1, 61, 1);
   }
 }
 /*

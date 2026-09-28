@@ -840,7 +840,13 @@ int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
   safety_mins[0] = -4.0f;
   safety_mins[1] = -4.0f;
   safety_mins[2] = 0.0f;
-  AAS_PresenceTypeBoundingBox(4, boxmins, boxmaxs);
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-presence-bbox-swapped) */
+  /* The 1999 PRESENCE_CROUCH got the standing box only through the swapped mapping.
+   * That is the box Q3 asks for here, with PRESENCE_NORMAL, so ask for it the same way. */
+  AAS_PresenceTypeBoundingBox(PRESENCE_NORMAL, boxmins, boxmaxs);
+#else
+  AAS_PresenceTypeBoundingBox(PRESENCE_CROUCH, boxmins, boxmaxs);
+#endif
   VectorSubtract((goal + 4), boxmaxs, absmins);
   VectorSubtract((goal + 7), boxmins, absmaxs);
   VectorAdd(absmins, goal, absmins);

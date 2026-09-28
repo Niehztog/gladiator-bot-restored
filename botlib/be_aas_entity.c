@@ -94,14 +94,14 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
     VectorAdd(ent->maxs, ent->origin, absmaxs);
 #if BOTLIB_NEED_SIDEBAND
     AAS_UnlinkFromAreas(AAS_EntAreaLink(entnum));
-    AAS_EntAreaLink(entnum) = AAS_LinkEntityClientBBox(absmins, absmaxs, entnum, 2);
+    AAS_EntAreaLink(entnum) = AAS_LinkEntityClientBBox(absmins, absmaxs, entnum, PRESENCE_NORMAL);
     AAS_UnlinkFromBSPLeaves(AAS_EntBspLink(entnum));
     AAS_EntBspLink(entnum) = AAS_BSPLinkEntity(absmins, absmaxs, entnum, 0);
 #else
     /* Reach the link heads through the already-cached `ent` pointer so MSVC
      * reuses one register for both, rather than recomputing the index. */
     AAS_UnlinkFromAreas(((aas_entity_t *)ent)->areas);
-    ((aas_entity_t *)ent)->areas = AAS_LinkEntityClientBBox(absmins, absmaxs, entnum, 2);
+    ((aas_entity_t *)ent)->areas = AAS_LinkEntityClientBBox(absmins, absmaxs, entnum, PRESENCE_NORMAL);
     AAS_UnlinkFromBSPLeaves(((aas_entity_t *)ent)->leaves);
     ((aas_entity_t *)ent)->leaves = AAS_BSPLinkEntity(absmins, absmaxs, entnum, 0);
 #endif
@@ -419,7 +419,7 @@ int __cdecl AAS_BestReachableArea(vec3_t origin, vec3_t mins, vec3_t maxs, vec3_
     VectorCopy(start, end);
     start[2] += 0.25;
     end[2] -= 50;
-    trace = AAS_TraceClientBBox(start, end, 4, -1);
+    trace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
     if ( !trace.startsolid )
     {
       areanum = AAS_PointAreaNum(trace.endpos);

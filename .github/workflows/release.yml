@@ -344,6 +344,12 @@ jobs:
             that had none yet, and otherwise saved garbage into the map's `.aas` file. The
             lookup now uses the face number without its sign and puts the sign back
             afterwards, as Quake III does. <!-- fix: aas-optimize-signed-facenum -->
+          - `AAS_PresenceTypeBoundingBox` had the standing and crouching bounding boxes
+            the wrong way round, so a standing bot was measured as if it crouched. It
+            checked for something blocking its path only in a thin band at knee height,
+            and predicted its moves past other players and doors with a body 24 units
+            too short. The sizes now match the rest of the bot library, as in
+            Quake III. <!-- fix: aas-presence-bbox-swapped -->
 
           Where Quake III later fixed the same code, the fix is its own correction —
           Mr. Elusive wrote both bot libraries — and where it has no counterpart, the

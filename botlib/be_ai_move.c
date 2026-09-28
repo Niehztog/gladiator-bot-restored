@@ -83,7 +83,7 @@ int __cdecl BotReachabilityArea(int *origin, int client)
        * grid-search loop below, not a pre-cached v4=origin[2] scalar. */
       VectorCopy(((float *)origin), end);
       end[2] -= 800.0f;
-      trace = AAS_TraceClientBBox((float *)origin, end, 4, -1);
+      trace = AAS_TraceClientBBox((float *)origin, end, PRESENCE_CROUCH, -1);
       if ( !trace.startsolid )
       {
         VectorCopy(trace.endpos, start);
@@ -399,7 +399,7 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
   VectorCopy(ms->origin, start);
   VectorCopy(ms->origin, end);
   end[2] -= 60.0f;
-  trace = AAS_TraceClientBBox(start, end, 4, -1);
+  trace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
   startz = trace.endpos[2] + 1.0f;
   for ( dist = 8.0f; dist <= 100.0f; dist += 8.0f )
   {
@@ -407,7 +407,7 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
     start[2] = startz + 24.0f;
     VectorCopy(start, end);
     end[2] -= 48.0f + libvar_sv_maxbarrier->value;
-    trace = AAS_TraceClientBBox(start, end, 4, -1);
+    trace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
     if ( !trace.startsolid )
     {
       //if it is a gap
@@ -440,7 +440,7 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, vec3_t dir, float speed)
 
   VectorCopy(ms->origin, end);
   end[2] = end[2] + libvar_sv_maxbarrier->value;
-  trace = AAS_TraceClientBBox(ms->origin, end, 2, ms->entitynum);
+  trace = AAS_TraceClientBBox(ms->origin, end, PRESENCE_NORMAL, ms->entitynum);
   if ( trace.startsolid )
     return 0;
   if ( trace.endpos[2] - ms->origin[2] < libvar_sv_step->value )
@@ -452,13 +452,13 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, vec3_t dir, float speed)
   VectorMA(ms->origin, ms->thinktime * speed * 0.5, hordir, end);
   VectorCopy(trace.endpos, start);
   end[2] = trace.endpos[2];
-  trace = AAS_TraceClientBBox(start, end, 2, ms->entitynum);
+  trace = AAS_TraceClientBBox(start, end, PRESENCE_NORMAL, ms->entitynum);
   if ( trace.startsolid )
     return 0;
   VectorCopy(trace.endpos, start);
   VectorCopy(trace.endpos, end);
   end[2] = ms->origin[2];
-  trace = AAS_TraceClientBBox(start, end, 2, ms->entitynum);
+  trace = AAS_TraceClientBBox(start, end, PRESENCE_NORMAL, ms->entitynum);
   if ( trace.startsolid )
     return 0;
   if ( trace.fraction >= 1.0 )
@@ -507,9 +507,9 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int
     if ( BotCheckBarrierJump(ms, dir, speed) )
       return 1;
     if ( (type & 2) != 0 && (type & 4) == 0 )
-      presencetype = 4;
+      presencetype = PRESENCE_CROUCH;
     else
-      presencetype = 2;
+      presencetype = PRESENCE_NORMAL;
     hordir[0] = dir[0];
     hordir[1] = dir[1];
     hordir[2] = 0.0f;
@@ -704,7 +704,7 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
     v4 = VectorNormalize(dir);
     dist = v4;
   }
-  if ( (AAS_AreaPresenceType(reach->areanum) & 2) == 0 )
+  if ( (AAS_AreaPresenceType(reach->areanum) & PRESENCE_NORMAL) == 0 )
   {
     if ( dist < 20.0f )
       EA_Crouch(ms->client);

@@ -156,7 +156,7 @@ int BotGetFormationGoal(bot_state_t *bs)
   VectorScale(dir, 400.0f, velocity);
   /* 0.1 s of motion; stopevent 0x7C = HITGROUND|HITWATER|HITSLIME|HITLAVA */
   move = AAS_ClientMovementPrediction(-1, start,
-                                      2, 1, vec3_origin, velocity,
+                                      PRESENCE_NORMAL, 1, vec3_origin, velocity,
                                       1, 2, 0.1f, 124, 0);
   VectorCopy(move.endpos, endpos);
   if ( (move.stopevent & 0x38) != 0 )

@@ -94,7 +94,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   start_pos[2] += 1.0f;
   runstart_vec = (float *)runstart;
   VectorScale((float *)hordir, 400.0f, (float *)cmdmove);
-  move = AAS_ClientMovementPrediction(-1, start_pos, 2, 1, vec3_origin, cmdmove, 1, 2, 0.1f, 124, 0);
+  move = AAS_ClientMovementPrediction(-1, start_pos, PRESENCE_NORMAL, 1, vec3_origin, cmdmove, 1, 2, 0.1f, 124, 0);
   VectorCopy(move.endpos, runstart_vec);
   stopevent = move.stopevent;
   if ( (stopevent & 0x38) != 0 )
@@ -178,7 +178,7 @@ int __cdecl AAS_AgainstLadder(vec3_t origin)
   }
   if ( !areanum ) return 0;
   if ( !(aasworld.areasettings[areanum].areaflags & 2)) return 0;
-  if ( !(aasworld.areasettings[areanum].presencetype & 2)) return 0;
+  if ( !(aasworld.areasettings[areanum].presencetype & PRESENCE_NORMAL)) return 0;
 
   area = &aasworld.areas[areanum];
   for (i = 0; i < area->numfaces; i++)
@@ -400,13 +400,13 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
     } //end if
     if (crouch)
     {
-      presencetype = 4;
+      presencetype = PRESENCE_CROUCH;
     } //end if
-    else if (presencetype == 4)
+    else if (presencetype == PRESENCE_CROUCH)
     {
-      if (AAS_PointPresenceType(org) & 2)
+      if (AAS_PointPresenceType(org) & PRESENCE_NORMAL)
       {
-        presencetype = 2;
+        presencetype = PRESENCE_NORMAL;
       } //end if
     } //end else
     //save the current origin
@@ -583,7 +583,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
       VectorCopy(org, start);
       VectorCopy(start, end);
       end[2] -= 48 + libvar_sv_maxbarrier->value;
-      gaptrace = AAS_TraceClientBBox(start, end, 4, -1);
+      gaptrace = AAS_TraceClientBBox(start, end, PRESENCE_CROUCH, -1);
       //if solid is found the bot cannot walk any further and will not fall into a gap
       if (!gaptrace.startsolid)
       {
@@ -643,7 +643,7 @@ void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
   cmd_move[2] = 224.0f;
 
   AAS_ClearShownDebugLines();
-  result = AAS_ClientMovementPrediction(entnum, origin, 2, 1,
+  result = AAS_ClientMovementPrediction(entnum, origin, PRESENCE_NORMAL, 1,
                                velocity, cmd_move, 13, 13,
                                0.1f, 1, 1);
 

@@ -1025,7 +1025,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
                     center[1], center[2]);
         VectorCopy(center, end);
         end[2] = end[2] - 300.0f;
-        trace = AAS_TraceClientBBox(center, end, 4, -1);
+        trace = AAS_TraceClientBBox(center, end, PRESENCE_CROUCH, -1);
         if ( !trace.startsolid )
         {
           v8 = AAS_PointAreaNum(trace.endpos);

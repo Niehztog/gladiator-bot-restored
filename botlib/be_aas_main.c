@@ -252,19 +252,32 @@ void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a
 // gladiator.dll: 1000DDA0..1000DE97
 // gladi386.so:   0001AE28..0001AEE1
 /* Q3's AAS_PresenceTypeBoundingBox.  The Q2 player bbox is 32x32 (-16..16), not Q3's
- * 30x30, and presence types here are 4=NORMAL, 2=CROUCH (Q3 uses 1/2).  Declared int
- * (unlike Q3's void) but never returns a value; it falls off the end, leaving whatever
- * the index*12 array-offset arithmetic last left in eax. */
+ * 30x30.  PRESENCE_NORMAL (2) and PRESENCE_CROUCH (4) mean what they mean in Q3: the
+ * .aas bbox lump stores 2 with maxs z 32 and 4 with maxs z 4 plus the crouch flag,
+ * BotEntityInfo sets PRESENCE_CROUCH only for PMF_DUCKED, and AAS_AreaCrouch calls an
+ * area without PRESENCE_NORMAL crouch-only.  This function alone maps them the other
+ * way round, in both originals (`cmp eax,4` selects row 1): PRESENCE_CROUCH gets the
+ * standing box and PRESENCE_NORMAL the crouch box, so a standing bot is tested with
+ * the crouch box.  GLAD_SERVERFIX(aas-presence-bbox-swapped) builds Q3's mapping.
+ * Declared int (unlike Q3's void) but never returns a value; it falls off the end,
+ * leaving whatever the index*12 array-offset arithmetic last left in eax. */
 int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t maxs)
 {
   int    index;
   vec3_t boxmins[3] = { {0.0f, 0.0f, 0.0f}, {-16.0f, -16.0f, -24.0f}, {-16.0f, -16.0f, -24.0f} };
   vec3_t boxmaxs[3] = { {0.0f, 0.0f, 0.0f}, { 16.0f,  16.0f,  32.0f}, { 16.0f,  16.0f,   8.0f} };
 
-  if ( presencetype == 4 )
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-presence-bbox-swapped) */
+  if ( presencetype == PRESENCE_NORMAL )
     index = 1;
-  else if ( presencetype == 2 )
+  else if ( presencetype == PRESENCE_CROUCH )
     index = 2;
+#else
+  if ( presencetype == PRESENCE_CROUCH )
+    index = 1;
+  else if ( presencetype == PRESENCE_NORMAL )
+    index = 2;
+#endif
   else
   {
     botimport.Print(PRT_FATAL,
