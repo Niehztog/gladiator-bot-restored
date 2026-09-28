@@ -430,7 +430,7 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
 
   AAS_ShowArea(reach->areanum, 1);
   AAS_DrawArrow(reach->start, reach->end, -202116623, -589439265);
-  if ( reach->traveltype == 5 || reach->traveltype == 7 ) /* TRAVEL_JUMP || TRAVEL_WALKOFFLEDGE */
+  if ( reach->traveltype == TRAVEL_JUMP || reach->traveltype == TRAVEL_WALKOFFLEDGE )
   {
     AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, reach->start, reach->end, &speed);
     dir[0] = reach->end[0] - reach->start[0];
@@ -440,13 +440,13 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     VectorScale(dir, speed, (float *)cmdmove);
     cmdmove[2] = libvar_sv_jumpvel->value;
     move = AAS_ClientMovementPrediction(-1, reach->start, PRESENCE_NORMAL, 1, vec3_origin, cmdmove, 3, 30, 0.1, 61, 1);
-    if ( reach->traveltype == 5 ) /* TRAVEL_JUMP only */
+    if ( reach->traveltype == TRAVEL_JUMP )
     {
       AAS_JumpReachRunStart((intptr_t)reach, (intptr_t)dir);
       AAS_DrawCross(dir, 4.0, -202116623); /* LINECOLOR_BLUE = -202116623 (0xF3F3F3F1) */
     }
   }
-  else if ( reach->traveltype == 12 ) /* TRAVEL_ROCKETJUMP */
+  else if ( reach->traveltype == TRAVEL_ROCKETJUMP )
   {
     zvel = AAS_RocketJumpZVelocity(reach->start); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
     AAS_HorizontalVelocityForJump(zvel, reach->start, reach->end, &speed);

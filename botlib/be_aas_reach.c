@@ -438,7 +438,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
           /* Indexed, not float* arithmetic — aas_plane_t's stride is 20 bytes. */
           plane = &aasworld.planes[face1->planenum ^ side1];
           VectorMA(lreach->reach.start, 2.0f, plane->normal, lreach->reach.end);
-          lreach->reach.traveltype = 8;
+          lreach->reach.traveltype = TRAVEL_SWIM;
           lreach->reach.traveltime = 1;
           if ( AAS_AreaVolume(area2num) < 800.0f )
             lreach->reach.traveltime += 200;
@@ -561,7 +561,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
             lr.reach.edgenum = edgenum;
             VectorCopy(start, lr.reach.start);
             VectorCopy(end, lr.reach.end);
-            lr.reach.traveltype = 2;
+            lr.reach.traveltype = TRAVEL_WALK;
             lr.reach.traveltime = 1;
             foundreach = 1;
           }
@@ -906,7 +906,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
       lreach->reach.edgenum = ground_bestarea2groundedgenum;
       VectorMA(ground_beststart, 0.1f, ground_bestnormal, lreach->reach.start);
       VectorMA(ground_bestend, 5.0f, ground_bestnormal, lreach->reach.end);
-      lreach->reach.traveltype = 2;
+      lreach->reach.traveltype = TRAVEL_WALK;
       lreach->reach.traveltime = 1;
       //if going into a crouch area
       if (!AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num))
@@ -954,7 +954,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           lreach->reach.edgenum = water_bestarea2groundedgenum;
           VectorCopy(water_beststart, lreach->reach.start);
           VectorMA(water_bestend, 15, water_bestnormal, lreach->reach.end);
-          lreach->reach.traveltype = 9;
+          lreach->reach.traveltype = TRAVEL_WATERJUMP;
           lreach->reach.traveltime = 700;
           lreach->next = areareachability[area1num];
           areareachability[area1num] = lreach;
@@ -986,7 +986,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           lreach->reach.edgenum = ground_bestarea2groundedgenum;
           VectorMA(ground_beststart, 0.1f, ground_bestnormal, lreach->reach.start);
           VectorMA(ground_bestend, 5.0f, ground_bestnormal, lreach->reach.end);
-          lreach->reach.traveltype = 4;
+          lreach->reach.traveltype = TRAVEL_BARRIERJUMP;
           lreach->reach.traveltime = 400;
           lreach->next = areareachability[area1num];
           areareachability[area1num] = lreach;
@@ -1013,7 +1013,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
         lreach->reach.edgenum = ground_bestarea2groundedgenum;
         VectorMA(ground_beststart, 0.1f, ground_bestnormal, lreach->reach.start);
         VectorMA(ground_bestend, 5.0f, ground_bestnormal, lreach->reach.end);
-        lreach->reach.traveltype = 2;
+        lreach->reach.traveltype = TRAVEL_WALK;
         lreach->reach.traveltime = 1;
         lreach->next = areareachability[area1num];
         areareachability[area1num] = lreach;
@@ -1046,7 +1046,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             lreach->reach.edgenum = ground_bestarea2groundedgenum;
             VectorCopy(ground_beststart, lreach->reach.start);
             VectorCopy(ground_bestend, lreach->reach.end);
-            lreach->reach.traveltype = 7;
+            lreach->reach.traveltype = TRAVEL_WALKOFFLEDGE;
             lreach->reach.traveltime = 100;
             lreach->next = areareachability[area1num];
             areareachability[area1num] = lreach;
@@ -1370,7 +1370,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     if (AAS_HorizontalVelocityForJump(0, beststart, bestend, &speed))
     {
       speed *= 1.2;
-      traveltype = 7;
+      traveltype = TRAVEL_WALKOFFLEDGE;
     } //end if
     else
     {
@@ -1378,7 +1378,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
       //speed (the jump is not possible) then there's no jump reachability created
       if (!AAS_HorizontalVelocityForJump(phys_jumpvel, beststart, bestend, &speed))
         return 0;
-      traveltype = 5;
+      traveltype = TRAVEL_JUMP;
     } //end else
     //
     //NOTE: test if the horizontal distance isn't too small
@@ -1424,7 +1424,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     dir[2] = 0;
     VectorNormalize(dir);
     VectorScale(dir, speed, cmdmove);
-    if (traveltype == 5) cmdmove[2] = libvar_sv_jumpvel->value;
+    if (traveltype == TRAVEL_JUMP) cmdmove[2] = libvar_sv_jumpvel->value;
     else cmdmove[2] = 0;
     //
     move = AAS_ClientMovementPrediction(-1, beststart, PRESENCE_NORMAL, 1, vec3_origin, cmdmove, 3, 30, 0.1, 61, 0);
@@ -1585,7 +1585,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
       VectorCopy(area1point, lreach->reach.start);
       //VectorCopy(area2point, lreach->end);
       VectorMA(area2point, -3, plane1->normal, lreach->reach.end);
-      lreach->reach.traveltype = 6;
+      lreach->reach.traveltype = TRAVEL_LADDER;
       lreach->reach.traveltime = 10;
       lreach->next = areareachability[area1num];
       areareachability[area1num] = lreach;
@@ -1600,7 +1600,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
       VectorCopy(area2point, lreach->reach.start);
       //VectorCopy(area1point, lreach->end);
       VectorMA(area1point, -3, plane1->normal, lreach->reach.end);
-      lreach->reach.traveltype = 6;
+      lreach->reach.traveltype = TRAVEL_LADDER;
       lreach->reach.traveltime = 10;
       lreach->next = areareachability[area2num];
       areareachability[area2num] = lreach;
@@ -1624,7 +1624,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
       VectorCopy(area2point, lreach->reach.end);
       lreach->reach.end[2] += 16;
       VectorMA(lreach->reach.end, -15, plane1->normal, lreach->reach.end);
-      lreach->reach.traveltype = 6;
+      lreach->reach.traveltype = TRAVEL_LADDER;
       lreach->reach.traveltime = 10;
       lreach->next = areareachability[area1num];
       areareachability[area1num] = lreach;
@@ -1638,7 +1638,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
       lreach->reach.edgenum = abs(sharededgenum);
       VectorCopy(area2point, lreach->reach.start);
       VectorCopy(area1point, lreach->reach.end);
-      lreach->reach.traveltype = 7;
+      lreach->reach.traveltype = TRAVEL_WALKOFFLEDGE;
       lreach->reach.traveltime = 10;
       lreach->next = areareachability[area2num];
       areareachability[area2num] = lreach;
@@ -1711,7 +1711,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
           lreach->reach.edgenum = lowestedgenum;
           VectorCopy(lowestpoint, lreach->reach.start);
           VectorCopy(trace.endpos, lreach->reach.end);
-          lreach->reach.traveltype = 6;
+          lreach->reach.traveltype = TRAVEL_LADDER;
           lreach->reach.traveltime = 10;
           lreach->next = areareachability[area1num];
           areareachability[area1num] = lreach;
@@ -1728,7 +1728,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
           VectorMA(lowestpoint, -5, plane1->normal, lreach->reach.end);
           //get the end point a little higher
           lreach->reach.end[2] += 10;
-          lreach->reach.traveltype = 5;
+          lreach->reach.traveltype = TRAVEL_JUMP;
           lreach->reach.traveltime = 10;
           lreach->next = areareachability[area2num];
           areareachability[area2num] = lreach;
@@ -1843,7 +1843,7 @@ void AAS_Reachability_Teleport(void)
       lreach->reach.edgenum = 0;
       VectorCopy(origin, lreach->reach.start);
       VectorCopy(destorigin, lreach->reach.end);
-      lreach->reach.traveltype = 10;
+      lreach->reach.traveltype = TRAVEL_TELEPORT;
       lreach->reach.traveltime = 50;
       lreach->next = areareachability[area1num];
       areareachability[area1num] = lreach;
@@ -2045,7 +2045,7 @@ void AAS_Reachability_Elevator()
             //
             VectorCopy(dir, lreach->reach.start);
             VectorCopy(toporg, lreach->reach.end);
-            lreach->reach.traveltype = 11;
+            lreach->reach.traveltype = TRAVEL_ELEVATOR;
             lreach->reach.traveltime = height * 100 / speed;
             if (!lreach->reach.traveltime) lreach->reach.traveltime = 50;
             lreach->next = areareachability[area1num];
@@ -2184,7 +2184,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     lreach->reach.edgenum = 0;
     VectorCopy(areastart, lreach->reach.start);
     VectorCopy(bsptrace.endpos, lreach->reach.end);
-    lreach->reach.traveltype = 14;
+    lreach->reach.traveltype = TRAVEL_GRAPPLEHOOK;
     VectorSubtract(lreach->reach.end, lreach->reach.start, dir);
     lreach->reach.traveltime = 500 + VectorLength(dir) * 0.25;
     lreach->next = areareachability[area1num];
@@ -2373,8 +2373,8 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
               lreach->reach.edgenum = 0;
               VectorCopy(areastart, lreach->reach.start);
               VectorCopy(facecenter, lreach->reach.end);
-              if (n) lreach->reach.traveltype = 13;
-              else lreach->reach.traveltype = 12;
+              if (n) lreach->reach.traveltype = TRAVEL_BFGJUMP;
+              else lreach->reach.traveltype = TRAVEL_ROCKETJUMP;
               lreach->reach.traveltime = 500;
               lreach->next = areareachability[area1num];
               areareachability[area1num] = lreach;
@@ -2506,7 +2506,7 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
             lreach->reach.edgenum = edge1num;
             VectorCopy(mid, lreach->reach.start);
             VectorCopy(trace.endpos, lreach->reach.end);
-            lreach->reach.traveltype = 7;
+            lreach->reach.traveltype = TRAVEL_WALKOFFLEDGE;
             if ( !AAS_AreaSwim(reachareanum) && mid[2] - trace.endpos[2] > AAS_FallDamageDistance() )
               lreach->reach.traveltime = 3000;
             else

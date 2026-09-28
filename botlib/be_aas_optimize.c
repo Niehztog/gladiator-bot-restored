@@ -237,7 +237,7 @@ void AAS_Optimize()
    * indexes with abs() and restores the sign. */
   for ( i = 0; i < aasworld.reachabilitysize; ++i )
   {
-    if ( aasworld.reachability[i].traveltype != 11 )
+    if ( aasworld.reachability[i].traveltype != TRAVEL_ELEVATOR )
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-optimize-signed-facenum) */
     {
       int sign;

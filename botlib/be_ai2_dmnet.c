@@ -720,9 +720,9 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     AIEnter_Respawn(bs);
     return 0;
   }
-  v8 = 102334;
+  v8 = TFL_DEFAULT;
   if ( usehook->value != 0.0f )
-    v8 = 118718;
+    v8 = TFL_DEFAULT|TFL_GRAPPLEHOOK;
   bs->enemy = 0;
   ent = bs->activategoal.origin;
   if ( !ent || BotTouchingGoal(bs->origin, ent) )
@@ -741,7 +741,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     bs->nbg_time = 0.0f;
   }
   BotAIBlocked(bs, &v15, 1);
-  if ( (v15.flags & 3) != 0 )
+  if ( (v15.flags & (MOVERESULT_MOVEMENTVIEW|MOVERESULT_SWIMVIEW)) != 0 )
   {
     VectorCopy(v15.ideal_viewangles, bs->ideal_viewangles);
   }
@@ -839,12 +839,12 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     AIEnter_Respawn(bs);
     return 0;
   }
-  v8 = 102334;
+  v8 = TFL_DEFAULT;
   if ( usehook->value != 0.0f )
-    v8 = 118718;
+    v8 = TFL_DEFAULT|TFL_GRAPPLEHOOK;
   if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
   {
-    v8 |= 0x1000;
+    v8 |= TFL_ROCKETJUMP;
   }
   bs->enemy = 0;
   v3 = BotGetTopGoal(&bs->goalstate);
@@ -881,11 +881,11 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     bs->nbg_time = 0.0f;
   }
   BotAIBlocked(bs, &moveresult, 1);
-  if ( (moveresult.flags & 3) != 0 )
+  if ( (moveresult.flags & (MOVERESULT_MOVEMENTVIEW|MOVERESULT_SWIMVIEW)) != 0 )
   {
     VectorCopy(moveresult.ideal_viewangles, bs->ideal_viewangles);
   }
-  else if ( (moveresult.flags & 4) != 0 )
+  else if ( (moveresult.flags & MOVERESULT_WAITING) != 0 )
   {
     /* rand() side first, as in the original, so the double product
      * (thinktime*0.8) is not spilled to a QWORD slot across the call. */
@@ -942,7 +942,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
       AIEnter_Battle_Fight(bs);
     }
   }
-  if ( (moveresult.flags & 8) == 0 )
+  if ( (moveresult.flags & MOVERESULT_MOVEMENTVIEWSET) == 0 )
     BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
@@ -997,11 +997,11 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     AIEnter_Stand(bs);
     return 0;
   }
-  tfl = 102334;
+  tfl = TFL_DEFAULT;
   if ( usehook->value )
-    tfl |= 0x4000;
+    tfl |= TFL_GRAPPLEHOOK;
   if ( rocketjump->value && BotCanAndWantsToRocketJump(bs) )
-    tfl |= 0x1000;
+    tfl |= TFL_ROCKETJUMP;
   bs->enemy = 0;
   if ( bs->killedenemy_time > AAS_Time() - 5 )
   {
@@ -1060,11 +1060,11 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     bs->ltg_time = 0;
   }
   BotAIBlocked(bs, &moveresult, 1);
-  if ( moveresult.flags & 3 )
+  if ( moveresult.flags & (MOVERESULT_MOVEMENTVIEW|MOVERESULT_SWIMVIEW) )
   {
     VectorCopy(moveresult.ideal_viewangles, bs->ideal_viewangles);
   }
-  else if ( moveresult.flags & 4 )
+  else if ( moveresult.flags & MOVERESULT_WAITING )
   {
     if ( random() < bs->thinktime * 0.8 )
     {
@@ -1100,7 +1100,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     bs->ideal_viewangles[2] *= 0.5;
   }
-  if ( !(moveresult.flags & 8) )
+  if ( !(moveresult.flags & MOVERESULT_MOVEMENTVIEWSET) )
     BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
@@ -1201,11 +1201,11 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
         return 0;
       }
     }
-    v8 = 102334;
+    v8 = TFL_DEFAULT;
     if ( usehook->value != 0.0f )
-      v8 = 118718;
+      v8 = TFL_DEFAULT|TFL_GRAPPLEHOOK;
     if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
-      v8 |= 0x1000u;
+      v8 |= TFL_ROCKETJUMP;
     sub_10020FE0(bs, BotWS(bs));
     BotChooseBestFightWeapon(BotWS(bs));
     sub_100215E0(bs);
@@ -1293,11 +1293,11 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     AIEnter_Seek_LTG(bs);
     return 0;
   }
-  tfl = 102334;
+  tfl = TFL_DEFAULT;
   if ( usehook->value != 0.0f )
-    tfl = 118718;
+    tfl = TFL_DEFAULT|TFL_GRAPPLEHOOK;
   if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
-    tfl |= 0x1000u;
+    tfl |= TFL_ROCKETJUMP;
   goal.entitynum = bs->enemy;
   goal.areanum = bs->lastenemyareanum;
   VectorCopy(bs->lastenemyorigin, goal.origin);
@@ -1339,7 +1339,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
       bs->ltg_time = 0.0f;
     }
     BotAIBlocked(bs, &moveresult, 0);
-    if ( (moveresult.flags & 3) != 0 )
+    if ( (moveresult.flags & (MOVERESULT_MOVEMENTVIEW|MOVERESULT_SWIMVIEW)) != 0 )
     {
       *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
       *(int *)&bs->ideal_viewangles[1] = LODWORD(moveresult.ideal_viewangles[1]);
@@ -1373,7 +1373,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     }
     if ( bs->ms.areanum == bs->lastenemyareanum )
       *(int *)&bs->chase_time = 0;
-    if ( (moveresult.flags & 8) == 0 )
+    if ( (moveresult.flags & MOVERESULT_MOVEMENTVIEWSET) == 0 )
       BotChangeViewAngles(bs, bs->thinktime);
     /* The retreat arm has its own `return 1`, so the original emits the exit
      * epilogue twice.  Collapsing it to a bare `if (…) AIEnter_Battle_Retreat(bs);`
@@ -1438,9 +1438,9 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
     AIEnter_Seek_LTG(bs);
     return 0;
   }
-  v2 = 102334;
+  v2 = TFL_DEFAULT;
   if ( usehook->value != 0.0f )
-    v2 |= 0x4000;
+    v2 |= TFL_GRAPPLEHOOK;
   BotUpdateBattleInventory(bs, bs->enemy);
   if ( BotWantsToChase((int *)bs) )
   {
@@ -1487,13 +1487,13 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
         BotAIBlocked(bs, &moveresult, 0);
         sub_10020FE0(bs, BotWS(bs));
         BotChooseBestFightWeapon(BotWS(bs));
-        if ( (moveresult.flags & 1) != 0 )
+        if ( (moveresult.flags & MOVERESULT_MOVEMENTVIEW) != 0 )
         {
           *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
           *(int *)&bs->ideal_viewangles[1] = LODWORD(moveresult.ideal_viewangles[1]);
           *(int *)&bs->ideal_viewangles[2] = LODWORD(moveresult.ideal_viewangles[2]);
         }
-        else if ( (moveresult.flags & 8) == 0 )
+        else if ( (moveresult.flags & MOVERESULT_MOVEMENTVIEWSET) == 0 )
         {
           /* Characteristic 4 is aggression: > 0.3 attack, <= 0.3 dodge. */
           attack_skill = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
@@ -1585,11 +1585,11 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     AIEnter_Seek_NBG(bs);
     return 0;
   }
-  v8 = 102334;
+  v8 = TFL_DEFAULT;
   if ( usehook->value != 0.0f )
-    v8 = 118718;
+    v8 = TFL_DEFAULT|TFL_GRAPPLEHOOK;
   if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
-    v8 |= 0x1000u;
+    v8 |= TFL_ROCKETJUMP;
   areanum = AAS_PointAreaNum(entinfo.origin);
   if ( areanum && AAS_AreaReachability(areanum) )
   {
@@ -1633,7 +1633,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   sub_10020FE0(bs, BotWS(bs));
   BotUpdateBattleInventory(bs, bs->enemy);
   BotChooseBestFightWeapon(BotWS(bs));
-  if ( (v15.flags & 1) != 0 )
+  if ( (v15.flags & MOVERESULT_MOVEMENTVIEW) != 0 )
   {
     VectorCopy(v15.ideal_viewangles, bs->ideal_viewangles);
   }
@@ -1642,7 +1642,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     BotAimAtEnemy(bs);
   }
   BotCheckAttack(bs);
-  if ( (v15.flags & 8) == 0 )
+  if ( (v15.flags & MOVERESULT_MOVEMENTVIEWSET) == 0 )
     BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }

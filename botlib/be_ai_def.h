@@ -468,7 +468,7 @@ typedef struct bot_movestate_s {
     int     lastreachnum;           /* +76  current reachability number */
     vec3_t  lastorigin;             /* +80  copied from origin[] each BotMoveToGoal call */
     int     reachareanum;           /* +92 */
-    int     moveflags;              /* +96  MFL_SWIMMING (2) | MFL_TELEPORTED (4) | MFL_WATERJUMP (8); cleared via &0xFFFFFFF3 */
+    int     moveflags;              /* +96  MFL_* (be_ai_move.h) */
     int     jumpreach;              /* +100 */
     float   grapplevisible_time;    /* +104 */
     float   lastgrappledist;        /* +108 */

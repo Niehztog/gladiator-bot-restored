@@ -176,7 +176,7 @@ BOOL __cdecl BotOnMover(vec3_t origin, int entnum, aas_reachability_t* reach)
   boxmaxs[0] = 16.0f;
   boxmaxs[1] = 16.0f;
   boxmaxs[2] = 8.0f;
-  if ( reach->traveltype != 11 )
+  if ( reach->traveltype != TRAVEL_ELEVATOR )
     return 0;
   AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, mins, maxs, modelorigin);
   /* Plain vec3_t arrays indexed by the loop counter: cl.exe /O2 then does the
@@ -225,7 +225,7 @@ BOOL __cdecl MoverDown(aas_reachability_t* reach)
   angles[0] = 0;
   angles[1] = 0;
   angles[2] = 0;
-  if ( reach->traveltype != 11 )
+  if ( reach->traveltype != TRAVEL_ELEVATOR )
     return 0;
   AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, (float *)mins, (float *)maxs, (float *)origin);
   if ( !AAS_OriginOfMoverWithModelNum(reach->facenum, origin) )
@@ -373,7 +373,7 @@ void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
   angles[0] = 0;
   angles[1] = 0;
   angles[2] = 0;
-  if ( reach->traveltype == 11 )
+  if ( reach->traveltype == TRAVEL_ELEVATOR )
   {
     AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, mins, maxs, (float *)origin);
     VectorAdd(mins, maxs, mids);
@@ -468,7 +468,7 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, vec3_t dir, float speed)
   EA_Jump(ms->client);
   EA_Move(ms->client, hordir, speed);
   result = 1;
-  ms->moveflags |= 1u;
+  ms->moveflags |= MFL_BARRIERJUMP;
   return result;
 }
 
@@ -502,11 +502,11 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int
   aas_clientmove_t move; // [esp+20h] [ebp-50h] BYREF (coalesced with the by-value return temp)
 
   v5 = ms->moveflags;
-  if ( (v5 & 2) != 0 )
+  if ( (v5 & MFL_ONGROUND) != 0 )
   {
     if ( BotCheckBarrierJump(ms, dir, speed) )
       return 1;
-    if ( (type & 2) != 0 && (type & 4) == 0 )
+    if ( (type & MOVE_CROUCH) != 0 && (type & MOVE_JUMP) == 0 )
       presencetype = PRESENCE_CROUCH;
     else
       presencetype = PRESENCE_NORMAL;
@@ -514,15 +514,15 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int
     hordir[1] = dir[1];
     hordir[2] = 0.0f;
     VectorNormalize(hordir);
-    if ( (type & 4) == 0 )
+    if ( (type & MOVE_JUMP) == 0 )
     {
       if ( BotGapDistance(ms, hordir) > 0.0f )
       {
-        type |= 4;
+        type |= MOVE_JUMP;
       }
     }
     VectorScale(hordir, speed, (float *)cmdmove);
-    if ( (type & 4) != 0 )
+    if ( (type & MOVE_JUMP) != 0 )
     {
       /* `maxframes` is computed inside EACH arm (Q3's shape), not once after the
        * join.  This is the only form both originals agree on: with a
@@ -558,14 +558,14 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int
     hordir[2] = 0.0f;
     if ( VectorLength(hordir) < speed * ms->thinktime * 0.5 )
       return 0;
-    if ( type & 4 )
+    if ( type & MOVE_JUMP )
       EA_Jump(ms->client);
-    if ( (type & 2) != 0 )
+    if ( (type & MOVE_CROUCH) != 0 )
       EA_Crouch(ms->client);
     EA_Move(ms->client, hordir, speed);
     return 1;
   }
-  if ( (v5 & 1) != 0 && ms->velocity[2] < 50.0f )
+  if ( (v5 & MFL_BARRIERJUMP) != 0 && ms->velocity[2] < 50.0f )
   {
     EA_Move(ms->client, dir, speed);
   }
@@ -842,7 +842,7 @@ bot_moveresult_t __cdecl BotTravel_Swim(bot_movestate_t *ms, aas_reachability_t 
   EA_Move(ms->client, dir, 400.0);
   VectorCopy(dir, moveresult.movedir);
   Vector2Angles(dir, moveresult.ideal_viewangles);
-  moveresult.flags |= 2;
+  moveresult.flags |= MOVERESULT_SWIMVIEW;
   return moveresult;
 }
 
@@ -869,7 +869,7 @@ bot_moveresult_t __cdecl BotTravel_WaterJump(bot_movestate_t *ms, aas_reachabili
   if ( dist < 40.0f )
     EA_MoveUp(ms->client);
   Vector2Angles(dir, moveresult.ideal_viewangles);
-  moveresult.flags |= 1;
+  moveresult.flags |= MOVERESULT_MOVEMENTVIEW;
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
@@ -887,7 +887,7 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
-  if ( ms->moveflags & 0x10 )
+  if ( ms->moveflags & MFL_WATERJUMP )
     return moveresult;
   VectorCopy(ms->origin, pnt);
   pnt[2] -= 32.0f;
@@ -907,7 +907,7 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
   VectorNormalize(dir);
   EA_Move(ms->client, dir, 400.0f);
   Vector2Angles(dir, moveresult.ideal_viewangles);
-  moveresult.flags |= 1;
+  moveresult.flags |= MOVERESULT_MOVEMENTVIEW;
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
@@ -1122,7 +1122,7 @@ bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_
   Vector2Angles(viewdir, moveresult.ideal_viewangles);
   EA_Move(ms->client, origin, 0.0);
   EA_MoveForward(ms->client);
-  moveresult.flags |= 1;
+  moveresult.flags |= MOVERESULT_MOVEMENTVIEW;
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
@@ -1141,10 +1141,10 @@ bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachabilit
    * (`test BYTE PTR [edi+0x60],N`) at each use site.  IDA invented v4 to name the
    * register MSVC happens to cache it in; gcc 2.7 does not do that CSE without a
    * real local. */
-  if ( (ms->moveflags & 0x20) == 0 )
+  if ( (ms->moveflags & MFL_TELEPORTED) == 0 )
   {
     VectorSubtract(reach->start, ms->origin, dir);
-    if ( (ms->moveflags & 4) == 0 )
+    if ( (ms->moveflags & MFL_SWIMMING) == 0 )
       dir[2] = 0.0f;
     dist = VectorNormalize(dir);
     BotCheckBlocked(ms, dir, &moveresult);
@@ -1154,14 +1154,14 @@ bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachabilit
       EA_Move(ms->client, dir, 400.0);
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
     /* The swim view promises ideal_viewangles; set them as BotMoveInGoalArea does. */
-    if ( (ms->moveflags & 4) != 0 )
+    if ( (ms->moveflags & MFL_SWIMMING) != 0 )
     {
       Vector2Angles(dir, moveresult.ideal_viewangles);
-      moveresult.flags |= 2;
+      moveresult.flags |= MOVERESULT_SWIMVIEW;
     }
 #else
-    if ( (ms->moveflags & 4) != 0 )
-      moveresult.flags |= 2;
+    if ( (ms->moveflags & MFL_SWIMMING) != 0 )
+      moveresult.flags |= MOVERESULT_SWIMVIEW;
 #endif
     VectorCopy(dir, moveresult.movedir);
   }
@@ -1219,7 +1219,7 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
   {
     /* get direction and distance to reachability start */
     VectorSubtract(reach->start, ms->origin, dir1);
-    if ( !(ms->moveflags & 4) ) dir1[2] = 0;
+    if ( !(ms->moveflags & MFL_SWIMMING) ) dir1[2] = 0;
     dist1 = VectorNormalize(dir1);
     /* if the elevator isn't down */
     if ( !MoverDown(reach) )
@@ -1229,29 +1229,29 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
       BotCheckBlocked(ms, dir, &result);
       if ( dist > 60 ) dist = 60;
       speed = 360 - (360 - 6 * dist);
-      if ( !(ms->moveflags & 4) && !BotCheckBarrierJump(ms, dir, 50) )
+      if ( !(ms->moveflags & MFL_SWIMMING) && !BotCheckBarrierJump(ms, dir, 50) )
       {
         if ( speed > 5 ) EA_Move(ms->client, dir, speed);
       }
       VectorCopy(dir, result.movedir);
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
-      if ( ms->moveflags & 4 )
+      if ( ms->moveflags & MFL_SWIMMING )
       {
         Vector2Angles(dir, result.ideal_viewangles);
-        result.flags |= 2;
+        result.flags |= MOVERESULT_SWIMVIEW;
       }
 #else
-      if ( ms->moveflags & 4 ) result.flags |= 2;
+      if ( ms->moveflags & MFL_SWIMMING ) result.flags |= MOVERESULT_SWIMVIEW;
 #endif
       /* this isn't a failure... just wait till the elevator comes down */
       result.type = 1;
-      result.flags |= 4;
+      result.flags |= MOVERESULT_WAITING;
       return result;
     }
     /* get direction and distance to elevator bottom center */
     MoverBottomCenter(reach, bottomcenter);
     VectorSubtract(bottomcenter, ms->origin, dir2);
-    if ( !(ms->moveflags & 4) ) dir2[2] = 0;
+    if ( !(ms->moveflags & MFL_SWIMMING) ) dir2[2] = 0;
     dist2 = VectorNormalize(dir2);
     /* if very close to the reachability start or closer to the elevator
      * center or between reachability start and elevator center */
@@ -1268,19 +1268,19 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
     BotCheckBlocked(ms, dir, &result);
     if ( dist > 60 ) dist = 60;
     speed = 400 - (400 - 6 * dist);
-    if ( !(ms->moveflags & 4) && !BotCheckBarrierJump(ms, dir, 50) )
+    if ( !(ms->moveflags & MFL_SWIMMING) && !BotCheckBarrierJump(ms, dir, 50) )
     {
       EA_Move(ms->client, dir, speed);
     }
     VectorCopy(dir, result.movedir);
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
-    if ( ms->moveflags & 4 )
+    if ( ms->moveflags & MFL_SWIMMING )
     {
       Vector2Angles(dir, result.ideal_viewangles);
-      result.flags |= 2;
+      result.flags |= MOVERESULT_SWIMVIEW;
     }
 #else
-    if ( ms->moveflags & 4 ) result.flags |= 2;
+    if ( ms->moveflags & MFL_SWIMMING ) result.flags |= MOVERESULT_SWIMVIEW;
 #endif
   }
   return result;
@@ -1359,12 +1359,12 @@ void __cdecl BotResetGrapple(bot_movestate_t *ms)
   aas_reachability_t reach;
 
   reach = AAS_ReachabilityFromNum(ms->lastreachnum);
-  /* `& 0x40` reads the integer moveflags field directly; through a float lens it
-   * would be a float->byte conversion that truncates the bit to 0. */
-  if ( reach.traveltype != 14 && ((ms->moveflags & 0x40) != 0 || ms->grapplevisible_time != 0.0f) )
+  /* `& MFL_ACTIVEGRAPPLE` reads the integer moveflags field directly; through a float
+   * lens it would be a float->byte conversion that truncates the bit to 0. */
+  if ( reach.traveltype != TRAVEL_GRAPPLEHOOK && ((ms->moveflags & MFL_ACTIVEGRAPPLE) != 0 || ms->grapplevisible_time != 0.0f) )
   {
     EA_Command(ms->client, "hookoff", (char *)0);
-    ms->moveflags &= 0xFFFFFFBFu;
+    ms->moveflags &= ~MFL_ACTIVEGRAPPLE;
     ms->grapplevisible_time = 0.0f;
   }
 }
@@ -1379,13 +1379,13 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
   int state, areanum;
 
   BotClearMoveResult(&result);
-  if ( ms->moveflags & 0x80 )
+  if ( ms->moveflags & MFL_GRAPPLERESET )
   {
     EA_Command(ms->client, "hookoff", (char *)0);
-    ms->moveflags &= ~0x40;
+    ms->moveflags &= ~MFL_ACTIVEGRAPPLE;
     return result;
   }
-  if ( ms->moveflags & 0x40 )
+  if ( ms->moveflags & MFL_ACTIVEGRAPPLE )
   {
     state = GrappleState(ms, reach);
     VectorSubtract(reach->end, ms->origin, dir);
@@ -1396,8 +1396,8 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
       if ( ms->lastgrappledist - dist < 1 )
       {
         EA_Command(ms->client, "hookoff", (char *)0);
-        ms->moveflags &= ~0x40;
-        ms->moveflags |= 0x80;
+        ms->moveflags &= ~MFL_ACTIVEGRAPPLE;
+        ms->moveflags |= MFL_GRAPPLERESET;
         ms->reachability_time = 0;
       }
     }
@@ -1406,8 +1406,8 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
       if ( ms->grapplevisible_time < AAS_Time() - 0.4 )
       {
         EA_Command(ms->client, "hookoff", (char *)0);
-        ms->moveflags &= ~0x40;
-        ms->moveflags |= 0x80;
+        ms->moveflags &= ~MFL_ACTIVEGRAPPLE;
+        ms->moveflags |= MFL_GRAPPLERESET;
         ms->reachability_time = 0;
         return result;
       }
@@ -1422,19 +1422,19 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
   {
     ms->grapplevisible_time = AAS_Time();
     VectorSubtract(reach->start, ms->origin, dir);
-    if ( !(ms->moveflags & 4) )
+    if ( !(ms->moveflags & MFL_SWIMMING) )
       dir[2] = 0;
     VectorAdd(ms->origin, ms->viewoffset, org);
     VectorSubtract(reach->end, org, viewdir);
     dist = VectorNormalize(dir);
     Vector2Angles(viewdir, result.ideal_viewangles);
-    result.flags |= 1;
+    result.flags |= MOVERESULT_MOVEMENTVIEW;
     if ( dist < 5 &&
          fabs(AngleDiff(result.ideal_viewangles[0], ms->viewangles[0])) < 2 &&
          fabs(AngleDiff(result.ideal_viewangles[1], ms->viewangles[1])) < 2 )
     {
       EA_Command(ms->client, "hookon", (char *)0);
-      ms->moveflags |= 0x40;
+      ms->moveflags |= MFL_ACTIVEGRAPPLE;
       ms->lastgrappledist = 999999;
     }
     else
@@ -1493,7 +1493,7 @@ bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachabil
   /* int bit-pattern store: the original sets pitch to 90.0f via raw bits. */
   *(int *)&ms->viewangles[0] = 1119092736;
   EA_View(ms->client, ms->viewangles);
-  moveresult.flags |= 8u;
+  moveresult.flags |= MOVERESULT_MOVEMENTVIEWSET;
   EA_UseItem(ms->client, "Rocket Launcher");
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
@@ -1539,31 +1539,31 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 {
   switch ( reach->traveltype )
   {
-    case 2:           // TRAVEL_WALK
+    case TRAVEL_WALK:
       return 5;
-    case 3:           // TRAVEL_CROUCH
+    case TRAVEL_CROUCH:
       return 5;
-    case 4:           // TRAVEL_BARRIERJUMP
+    case TRAVEL_BARRIERJUMP:
       return 5;
-    case 5:           // TRAVEL_JUMP
+    case TRAVEL_JUMP:
       return 5;
-    case 6:           // TRAVEL_LADDER
+    case TRAVEL_LADDER:
       return 6;
-    case 7:           // TRAVEL_WALKOFFLEDGE
+    case TRAVEL_WALKOFFLEDGE:
       return 5;
-    case 8:           // TRAVEL_SWIM
+    case TRAVEL_SWIM:
       return 5;
-    case 9:           // TRAVEL_WATERJUMP
+    case TRAVEL_WATERJUMP:
       return 5;
-    case 10:          // TRAVEL_TELEPORT
+    case TRAVEL_TELEPORT:
       return 5;
-    case 11:          // TRAVEL_ELEVATOR
+    case TRAVEL_ELEVATOR:
       return 10;
-    case 12:          // TRAVEL_ROCKETJUMP
+    case TRAVEL_ROCKETJUMP:
       return 6;
-    case 14:          // TRAVEL_GRAPPLEHOOK (silent)
+    case TRAVEL_GRAPPLEHOOK:  // silent, unlike the default
       return 8;
-    default:          // incl. 13 TRAVEL_BFGJUMP and out-of-range
+    default:  // incl. TRAVEL_BFGJUMP and out-of-range
       botimport.Print(PRT_ERROR, "travel type %d not implemented yet\n", reach->traveltype);
       return 8;
   }
@@ -1585,15 +1585,15 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
   BotClearMoveResult(&moveresult);
   dir[0] = goal->origin[0] - ms->origin[0];
   dir[1] = goal->origin[1] - ms->origin[1];
-  if ( (ms->moveflags & 4) != 0 )
+  if ( (ms->moveflags & MFL_SWIMMING) != 0 )
   {
     dir[2] = goal->origin[2] - ms->origin[2];
-    moveresult.traveltype = 8;
+    moveresult.traveltype = TRAVEL_SWIM;
   }
   else
   {
     dir[2] = 0.0f;
-    moveresult.traveltype = 2;
+    moveresult.traveltype = TRAVEL_WALK;
   }
   dist = VectorNormalize(dir);
   if ( dist > 100.0f )
@@ -1605,10 +1605,10 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
   BotCheckBlocked(ms, dir, &moveresult);
   EA_Move(ms->client, dir, v17);
   VectorCopy(dir, moveresult.movedir);
-  if ( (ms->moveflags & 4) != 0 )
+  if ( (ms->moveflags & MFL_SWIMMING) != 0 )
   {
     Vector2Angles(dir, moveresult.ideal_viewangles);
-    moveresult.flags |= 2;
+    moveresult.flags |= MOVERESULT_SWIMVIEW;
   }
   ms->lastreachnum = 0;
   ms->lastareanum = 0;
@@ -1656,17 +1656,17 @@ bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *g
     return moveresult;
   }
   {
-    movestate->moveflags &= 0xFFFFFFF3;
+    movestate->moveflags &= ~(MFL_SWIMMING|MFL_AGAINSTLADDER);
     if ( AAS_OnGround(movestate->origin, movestate->presencetype, movestate->entitynum) )
-      movestate->moveflags |= 2;
+      movestate->moveflags |= MFL_ONGROUND;
     if ( AAS_Swimming(movestate->origin) )
-      movestate->moveflags |= 4;
+      movestate->moveflags |= MFL_SWIMMING;
     if ( AAS_AgainstLadder((int *)movestate->origin) )
-      movestate->moveflags |= 8;
-    if ( (movestate->moveflags & 0xE) != 0 )
+      movestate->moveflags |= MFL_AGAINSTLADDER;
+    if ( (movestate->moveflags & (MFL_ONGROUND|MFL_SWIMMING|MFL_AGAINSTLADDER)) != 0 )
     {
       lastreach = AAS_ReachabilityFromNum(movestate->lastreachnum);
-      v8 = BotReachabilityArea((int *)movestate, lastreach.traveltype != 11);
+      v8 = BotReachabilityArea((int *)movestate, lastreach.traveltype != TRAVEL_ELEVATOR);
       movestate->areanum = v8;
       if ( v8 == goal->areanum )
       {
@@ -1678,12 +1678,12 @@ bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *g
         reach = AAS_ReachabilityFromNum(movestate->lastreachnum);
         if ( (travelflags & AAS_TravelFlagForType(reach.traveltype)) != 0 )
         {
-          if ( reach.traveltype == 14 )
+          if ( reach.traveltype == TRAVEL_GRAPPLEHOOK )
           {
-            if ( AAS_Time() <= movestate->reachability_time && (movestate->moveflags & 0x80) == 0 )
+            if ( AAS_Time() <= movestate->reachability_time && (movestate->moveflags & MFL_GRAPPLERESET) == 0 )
               goto LABEL_27;
           }
-          else if ( reach.traveltype == 11 )
+          else if ( reach.traveltype == TRAVEL_ELEVATOR )
           {
             if ( movestate->areanum != reach.areanum && AAS_Time() <= movestate->reachability_time )
               goto LABEL_27;
@@ -1711,7 +1711,7 @@ bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *g
       reachnum = v12;
       movestate->reachareanum = movestate->areanum;
       movestate->jumpreach = 0;
-      movestate->moveflags &= 0xFFFFFF7F;
+      movestate->moveflags &= ~MFL_GRAPPLERESET;
       if ( v12 )
       {
         reach = AAS_ReachabilityFromNum(v12);
@@ -1731,29 +1731,29 @@ LABEL_27:
         moveresult.traveltype = reach.traveltype;
         switch ( reach.traveltype )
         {
-          case 2:
+          case TRAVEL_WALK:
             moveresult = BotTravel_Walk(movestate, &reach); break;
-          case 3:
+          case TRAVEL_CROUCH:
             moveresult = BotTravel_Crouch(movestate, &reach); break;
-          case 4:
+          case TRAVEL_BARRIERJUMP:
             moveresult = BotTravel_BarrierJump(movestate, &reach); break;
-          case 6:
+          case TRAVEL_LADDER:
             moveresult = BotTravel_Ladder(movestate, &reach); break;
-          case 7:
+          case TRAVEL_WALKOFFLEDGE:
             moveresult = BotTravel_WalkOffLedge(movestate, &reach); break;
-          case 5:
+          case TRAVEL_JUMP:
             moveresult = BotTravel_Jump(movestate, &reach); break;
-          case 8:
+          case TRAVEL_SWIM:
             moveresult = BotTravel_Swim(movestate, &reach); break;
-          case 9:
+          case TRAVEL_WATERJUMP:
             moveresult = BotTravel_WaterJump(movestate, &reach); break;
-          case 0xA:
+          case TRAVEL_TELEPORT:
             moveresult = BotTravel_Teleport(movestate, &reach); break;
-          case 0xB:
+          case TRAVEL_ELEVATOR:
             moveresult = BotTravel_Elevator(movestate, &reach); break;
-          case 0xE:
+          case TRAVEL_GRAPPLEHOOK:
             moveresult = BotTravel_Grapple(movestate, &reach); break;
-          case 0xC:
+          case TRAVEL_ROCKETJUMP:
             moveresult = BotTravel_RocketJump(movestate, &reach); break;
           default:
             botimport.Print(PRT_FATAL, "travel type %d not implemented yet\n", reach.traveltype);
@@ -1773,28 +1773,28 @@ LABEL_27:
         moveresult.traveltype = reach.traveltype;
         switch ( reach.traveltype )
         {
-          case 2:
+          case TRAVEL_WALK:
             moveresult = BotTravel_Walk(movestate, &reach); break;
-          case 3:
-          case 0xA:
+          case TRAVEL_CROUCH:
+          case TRAVEL_TELEPORT:
             break;
-          case 4:
+          case TRAVEL_BARRIERJUMP:
             moveresult = BotFinishTravel_BarrierJump(movestate, &reach); break;
-          case 6:
+          case TRAVEL_LADDER:
             moveresult = BotTravel_Ladder(movestate, &reach); break;
-          case 7:
+          case TRAVEL_WALKOFFLEDGE:
             moveresult = BotFinishTravel_WalkOffLedge(movestate, &reach); break;
-          case 5:
+          case TRAVEL_JUMP:
             moveresult = BotFinishTravel_Jump(movestate, &reach); break;
-          case 8:
+          case TRAVEL_SWIM:
             moveresult = BotTravel_Swim(movestate, &reach); break;
-          case 9:
+          case TRAVEL_WATERJUMP:
             moveresult = BotFinishTravel_WaterJump(movestate, &reach); break;
-          case 0xB:
+          case TRAVEL_ELEVATOR:
             moveresult = BotFinishTravel_Elevator(movestate, &reach); break;
-          case 0xE:
+          case TRAVEL_GRAPPLEHOOK:
             moveresult = BotTravel_Grapple(movestate, &reach); break;
-          case 0xC:
+          case TRAVEL_ROCKETJUMP:
             moveresult = BotFinishTravel_WeaponJump(movestate, &reach); break;
           default:
             botimport.Print(PRT_FATAL, "(last) travel type %d not implemented yet\n", reach.traveltype);

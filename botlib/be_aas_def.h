@@ -11,6 +11,41 @@
 #ifndef AAS_WORLD_H
 #define AAS_WORLD_H
 
+/* Q3's travel flags and TFL_DEFAULT, verbatim from its be_aas.h except for Gladiator's
+ * values.  1..14 are Q3's: AAS_InitTravelFlagFromType gives each travel type its bit.
+ * The four medium flags are Gladiator's own, read out of AAS_GetAreaContentsTravelFlags:
+ * water 0x10000, lava 0x20000, slime 0x40000, otherwise air 0x8000.  Q3 moved them up
+ * past its double, ramp and strafe jumps and jump pads, and put slime before lava.
+ * TFL_DEFAULT is the set every AI node starts from, 0x18FBE; Q3's adds the jump pad and
+ * func_bob flags, which Gladiator has no travel for.  It is unparenthesised, as in Q3:
+ * here it is only ever assigned or ORed. */
+//travel flags
+#define TFL_INVALID				0x00000001	//traveling temporary not possible
+#define TFL_WALK				0x00000002	//walking
+#define TFL_CROUCH				0x00000004	//crouching
+#define TFL_BARRIERJUMP			0x00000008	//jumping onto a barrier
+#define TFL_JUMP				0x00000010	//jumping
+#define TFL_LADDER				0x00000020	//climbing a ladder
+#define TFL_WALKOFFLEDGE		0x00000080	//walking of a ledge
+#define TFL_SWIM				0x00000100	//swimming
+#define TFL_WATERJUMP			0x00000200	//jumping out of the water
+#define TFL_TELEPORT			0x00000400	//teleporting
+#define TFL_ELEVATOR			0x00000800	//elevator
+#define TFL_ROCKETJUMP			0x00001000	//rocket jumping
+#define TFL_BFGJUMP				0x00002000	//bfg jumping
+#define TFL_GRAPPLEHOOK			0x00004000	//grappling hook
+#define TFL_AIR					0x00008000	//travel through air
+#define TFL_WATER				0x00010000	//travel through water
+#define TFL_LAVA				0x00020000	//travel through lava
+#define TFL_SLIME				0x00040000	//travel through slime
+
+//default travel flags
+#define TFL_DEFAULT	TFL_WALK|TFL_CROUCH|TFL_BARRIERJUMP|\
+	TFL_JUMP|TFL_LADDER|\
+	TFL_WALKOFFLEDGE|TFL_SWIM|TFL_WATERJUMP|\
+	TFL_TELEPORT|TFL_ELEVATOR|\
+	TFL_AIR|TFL_WATER
+
 /* The AAS internal structures and the aasworld instance, from the
  * IDA-emitted gladiator.dll.h.  This is what be_aas_def.h is for. */
 /* aas_soundpool_t — node of the AAS active-sound pool, a packed array of 52-byte
@@ -265,7 +300,7 @@ typedef struct aas_world_s {
                                                   which is what the .so emits. */
     struct bsp_pointlight_s *oldestcache;  /* +0x200  (VA 0x100669E0) — point-light free pool head */
     struct bsp_pointlight_s *newestcache;  /* +0x204                  — point-light live list head */
-    int   travelflagfortype[32];    /* +0x208  (VA 0x100669E8, 128 bytes)               */
+    int   travelflagfortype[MAX_TRAVELTYPES];    /* +0x208  (VA 0x100669E8, 128 bytes)               */
     aas_routingupdate_t *areaupdate;     /* +0x288  (VA 0x10066A68) */
     aas_routingupdate_t *portalupdate;   /* +0x28C */
     int   frameroutingupdates;      /* +0x290 */

@@ -72,27 +72,27 @@ __inline int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
  * [15..31] stay zero.  Same as Q3's be_aas_main.c. */
 void AAS_InitTravelFlagFromType(void)
 {
-  aasworld.travelflagfortype[1]  = 0x0001;     /* TFL_INVALID         */
-  aasworld.travelflagfortype[2]  = 0x0002;     /* TFL_WALK            */
-  aasworld.travelflagfortype[3]  = 0x0004;     /* TFL_CROUCH          */
-  aasworld.travelflagfortype[4]  = 0x0008;     /* TFL_BARRIERJUMP     */
-  aasworld.travelflagfortype[5]  = 0x0010;     /* TFL_JUMP            */
-  aasworld.travelflagfortype[6]  = 0x0020;     /* TFL_LADDER          */
-  aasworld.travelflagfortype[7]  = 0x0080;     /* TFL_WALKOFFLEDGE    */
-  aasworld.travelflagfortype[8]  = 0x0100;     /* TFL_SWIM            */
-  aasworld.travelflagfortype[9]  = 0x0200;     /* TFL_WATERJUMP       */
-  aasworld.travelflagfortype[10] = 0x0400;     /* TFL_TELEPORT        */
-  aasworld.travelflagfortype[11] = 0x0800;     /* TFL_ELEVATOR        */
-  aasworld.travelflagfortype[12] = 0x1000;     /* TFL_ROCKETJUMP      */
-  aasworld.travelflagfortype[13] = 0x2000;     /* TFL_BFGJUMP         */
-  aasworld.travelflagfortype[14] = 0x4000;     /* TFL_GRAPPLEHOOK     */
+  aasworld.travelflagfortype[TRAVEL_INVALID]      = TFL_INVALID;
+  aasworld.travelflagfortype[TRAVEL_WALK]         = TFL_WALK;
+  aasworld.travelflagfortype[TRAVEL_CROUCH]       = TFL_CROUCH;
+  aasworld.travelflagfortype[TRAVEL_BARRIERJUMP]  = TFL_BARRIERJUMP;
+  aasworld.travelflagfortype[TRAVEL_JUMP]         = TFL_JUMP;
+  aasworld.travelflagfortype[TRAVEL_LADDER]       = TFL_LADDER;
+  aasworld.travelflagfortype[TRAVEL_WALKOFFLEDGE] = TFL_WALKOFFLEDGE;
+  aasworld.travelflagfortype[TRAVEL_SWIM]         = TFL_SWIM;
+  aasworld.travelflagfortype[TRAVEL_WATERJUMP]    = TFL_WATERJUMP;
+  aasworld.travelflagfortype[TRAVEL_TELEPORT]     = TFL_TELEPORT;
+  aasworld.travelflagfortype[TRAVEL_ELEVATOR]     = TFL_ELEVATOR;
+  aasworld.travelflagfortype[TRAVEL_ROCKETJUMP]   = TFL_ROCKETJUMP;
+  aasworld.travelflagfortype[TRAVEL_BFGJUMP]      = TFL_BFGJUMP;
+  aasworld.travelflagfortype[TRAVEL_GRAPPLEHOOK]  = TFL_GRAPPLEHOOK;
 }
 
 // gladiator.dll: 10018DC0..10018DD8
 // gladi386.so:   000264F0..0002651C
 int __cdecl AAS_TravelFlagForType(int traveltype)
 {
-  if ( traveltype < 0 || traveltype >= 32 )
+  if ( traveltype < 0 || traveltype >= MAX_TRAVELTYPES )
     return 0;
   else
     return aasworld.travelflagfortype[traveltype];

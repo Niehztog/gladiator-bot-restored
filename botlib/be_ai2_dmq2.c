@@ -98,18 +98,18 @@ void __cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
   info[9] = bs->entitynum;
   info[10] = bs->client;
   info[11] = *(int *)&bs->thinktime;
-  v3 = info[24] & 0xFFFFFFFD;
+  v3 = info[24] & ~MFL_ONGROUND;
   info[24] = v3;
   if ( (bs->snapshot.pm_flags & 4) != 0 )
-    info[24] = v3 | 2;
-  v4 = info[24] & 0xFFFFFFDF;
+    info[24] = v3 | MFL_ONGROUND;
+  v4 = info[24] & ~MFL_TELEPORTED;
   info[24] = v4;
   if ( (bs->snapshot.pm_flags & 0x20) != 0 && bs->snapshot.pm_time > 0 )
-    info[24] = v4 | 0x20;
-  v5 = info[24] & 0xFFFFFFEF;
+    info[24] = v4 | MFL_TELEPORTED;
+  v5 = info[24] & ~MFL_WATERJUMP;
   info[24] = v5;
   if ( (bs->snapshot.pm_flags & 8) != 0 && bs->snapshot.pm_time > 0 )
-    info[24] = v5 | 0x10;
+    info[24] = v5 | MFL_WATERJUMP;
   if ( (bs->snapshot.pm_flags & 1) != 0 )
     info[12] = PRESENCE_CROUCH;
   else
@@ -970,22 +970,22 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int tfl)
   backward[0] = -forward[0];
   backward[1] = -forward[1];
   backward[2] = -forward[2];
-  movetype = 1;
+  movetype = MOVE_WALK;
   if ( bs->attackcrouch_time < AAS_Time() - 1 )
   {
     if ( random() < jumper )
-      movetype = 4;
+      movetype = MOVE_JUMP;
     else if ( bs->attackcrouch_time < AAS_Time() - 1 && random() < croucher )
       bs->attackcrouch_time = AAS_Time() + croucher * 5;
   }
   if ( bs->attackcrouch_time > AAS_Time() )
-    movetype = 2;
-  if ( movetype == 4 )
+    movetype = MOVE_CROUCH;
+  if ( movetype == MOVE_JUMP )
   {
     if ( bs->flags & 4 )
     {
       bs->flags &= ~4;
-      movetype = 1;
+      movetype = MOVE_WALK;
     }
     else
       bs->flags |= 4;
@@ -1707,7 +1707,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
       VectorScale(goalorigin, 0.5, goalorigin);
       VectorSubtract(goalorigin, bs->origin, movedir);
       Vector2Angles(movedir, moveresult->ideal_viewangles);
-      moveresult->flags |= 1;
+      moveresult->flags |= MOVERESULT_MOVEMENTVIEW;
       EA_UseItem(bs->client, "Blaster");
       EA_Attack(bs->client);
       return;
@@ -1734,7 +1734,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
         VectorMA(origin, -dist, movedir, goalorigin);
         VectorSubtract(goalorigin, bs->origin, movedir);
         Vector2Angles(movedir, moveresult->ideal_viewangles);
-        moveresult->flags |= 1;
+        moveresult->flags |= MOVERESULT_MOVEMENTVIEW;
         EA_UseItem(bs->client, "Blaster");
         EA_Attack(bs->client);
         return;
@@ -1831,13 +1831,13 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
     sideward[1] = -sideward[1];
     sideward[2] = -sideward[2];
   }
-  if ( !BotMoveInDirection((bot_movestate_t *)&bs->ms, sideward, 400, 1) )
+  if ( !BotMoveInDirection((bot_movestate_t *)&bs->ms, sideward, 400, MOVE_WALK) )
   {
     bs->flags ^= 0x10;
     sideward[0] = -sideward[0];
     sideward[1] = -sideward[1];
     sideward[2] = -sideward[2];
-    BotMoveInDirection((bot_movestate_t *)&bs->ms, sideward, 400, 1);
+    BotMoveInDirection((bot_movestate_t *)&bs->ms, sideward, 400, MOVE_WALK);
   }
   if ( BotAINode(bs) == AINode_Seek_NBG )
     bs->nbg_time = 0;
