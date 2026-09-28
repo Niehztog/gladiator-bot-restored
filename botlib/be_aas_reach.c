@@ -1825,7 +1825,18 @@ void AAS_Reachability_Teleport(void)
     //the bounding box of the teleporter trigger
     VectorSet(mins, -8, -8, 8);
     VectorSet(maxs, 8, 8, 24);
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-presence-bbox-swapped) */
+    /* The 1999 PRESENCE_CROUCH got the standing box only through the swapped mapping,
+     * and the standing box is the right one here: the grown trigger box then holds every
+     * origin from which a standing bot touches the trigger, and each grounded area it
+     * links gets a reachability.  Q3 passes PRESENCE_CROUCH at this call, but it links a
+     * trigger_teleport brush and keeps only AAS_AreaTeleporter areas, which the box need
+     * only hit.  So ask for the 1999 box by name: teleporter reachabilities stay the
+     * ones the 1999 code builds. */
+    AAS_PresenceTypeBoundingBox(PRESENCE_NORMAL, bbmins, bbmaxs);
+#else
     AAS_PresenceTypeBoundingBox(PRESENCE_CROUCH, bbmins, bbmaxs);
+#endif
     /* `origin` is the FIRST argument: it is the operand that stays on the x87 stack
      * (`fld [origin]; fld st(0); fadd [mins]`) and is reused for the maxs add.  With
      * mins/maxs first gcc reloads them and adds st(1) instead. */

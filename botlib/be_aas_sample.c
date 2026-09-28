@@ -908,12 +908,23 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     aasnode = &aasworld.nodes[nodenum];
     plane = &aasworld.planes[aasnode->planenum];
     type = plane->type;
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-link-axial-sign) */
+    /* Q3's AAS_AASLinkEntity: the full side test for every plane.  The axial shortcut
+     * below compares dist against the box as if the normal pointed along +axis.  But
+     * bspc stores every plane next to its negation, the +axis one first, and a node
+     * that splits facing -axis gets the odd one (Q3 bspc aas_store.c, AAS_GetPlane);
+     * 1-5% of the nodes in the stock and RA2 .aas files do.  There the shortcut takes
+     * the wrong side, so the walk skips areas the box is in.  `type` stays set but
+     * unused, so the #else arm's text is unchanged. */
+    side = AAS_BoxOnPlaneSide2(absmins, absmaxs, plane->normal);
+#else
     if ( type < 3 )
     {
-      /* Axial fast-path of AAS_BoxOnPlaneSide2, inlined: side&1 descends front
-       * child[0], side&2 descends back child[1].  The comparison polarity below is the
-       * original's and matters behaviourally — inverted, a box straddling the plane
-       * classifies as front-only instead of both children. */
+      /* Q3's AAS_BoxOnPlaneSide macro, inlined: side&1 descends front child[0], side&2
+       * descends back child[1].  The comparison polarity below is the original's and
+       * matters behaviourally — inverted, a box straddling the plane classifies as
+       * front-only instead of both children.  It is only right for a normal that points
+       * along +axis; see the GLAD_SERVERFIX arm. */
       if ( plane->dist <= (float)absmins[type] )
         side = 1;
       else if ( plane->dist >= (float)absmaxs[type] )
@@ -925,6 +936,7 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     {
       side = AAS_BoxOnPlaneSide2(absmins, absmaxs, plane->normal);
     }
+#endif
     if ( (side & 1) != 0 )
       *lstack_p++ = aasnode->children[0];
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-linkstack-overflow) */
