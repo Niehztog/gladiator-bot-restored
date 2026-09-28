@@ -2627,15 +2627,3 @@ int sub_100085F0()
 {
   return sub_10037850(aasworld.mapname, bspworld.dentdata, bspworld.entdatasize);
 }
-
-/* ------------------------------------------------------------------------
- * Present in gladi386.so, ABSENT from gladiator.dll.
- *
- * The .so is the Aug 2 1999 build, the DLL Jul 18, so the Linux image carries
- * functions the Windows one does not.  Gated rather than added unconditionally,
- * because the DLL is the canonical byte-match target and code it does not
- * contain must not appear in it.  Drop the gate for any that later turns up.
- * ------------------------------------------------------------------------ */
-#ifndef _WIN32
-
-#endif /* !_WIN32 -- gladi386.so-only */

@@ -5,6 +5,10 @@
 
 #include "botlib_port.h"
 #include <errno.h>  /* the .so's AAS_LoadFiles calls __errno_location; see botlib_port.h */
+#ifdef _WIN32
+#include <process.h>  /* _spawnl, which sub_1000E140 starts WinBSPC with */
+#include <direct.h>   /* _getcwd and _chdir, which sub_1000E430 moves the process with */
+#endif
 #include "l_libvar.h"
 #undef VectorNegate
 #include "be_ea.h"
@@ -403,7 +407,9 @@ intptr_t __cdecl sub_1000E140(char *Source)
   strncat(Arguments, "winbspc.exe", 144 - strlen(Arguments));
   Log_Write("spawning \"%s\"", Arguments);
   sprintf(Buffer, "bsp2aas(%s,%s);", Destination, FileName);
-  result = SpawnProcess(1, Arguments, Arguments, Buffer, 0);
+  /* The CRT's own _spawnl (0x10052E44 in the DLL), called directly: mode, the
+   * program, argv[0] (the program again), the bsp2aas script, terminator. */
+  result = _spawnl(_P_NOWAIT, Arguments, Arguments, Buffer, NULL);
   if ( result < 0 )
     return botimport.Print(PRT_ERROR, "can't execute WinBSPC\n");
   return result;
@@ -451,7 +457,7 @@ int __cdecl sub_1000E430(char *Source)
     strncat(Destination, v2, 144 - strlen(Destination));
     AppendPathSeperator(Destination, 144);
   }
-  getcwd_locked(Path, 144);
+  _getcwd(Path, 144);
   _chdir(Destination);
   if ( v2 )
     strncpy(dirs[0], v2, 0x90u);
@@ -491,7 +497,7 @@ int __cdecl sub_1000E430(char *Source)
 #else
             return errno;
 #endif
-          remove_file(ArgList);
+          remove(ArgList);
           botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", Destination, ArgList);
           Log_Write("found %s in %s", ArgList, Destination); /* "found %s in %s" */
           _chdir(Path);

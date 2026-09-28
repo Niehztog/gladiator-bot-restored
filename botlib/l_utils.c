@@ -22,6 +22,9 @@
 #include "l_libvar.h"
 #include "l_log.h"
 #include "l_memory.h"
+#ifdef _WIN32
+#include <direct.h>  /* _getcwd, which sub_10041FF0 fills the ZIP32 root dir with */
+#endif
 
 /* ---- UnZip/ZIP32 windll state — WINDOWS ONLY -----------------------------
  * All of it belongs inside the same `#ifdef _WIN32` as the code that uses it
@@ -607,7 +610,7 @@ int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive)
   zopt.o48 = 0; zopt.o4c = 0; zopt.o50 = 0; zopt.o54 = 0; zopt.o58 = 0; zopt.o5c = 0;
   zopt.o44 = 0;
   zopt.c6d = 0;
-  getcwd_locked(zopt.rootdir, 0x104);
+  _getcwd(zopt.rootdir, 0x104);
   zcl.argc = 1;
   zcl.lpszZipFN = (intptr_t)zipfile;
   FNV_handle = GlobalAlloc(0x40u, 0x10000u);

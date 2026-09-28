@@ -90,9 +90,10 @@ jobs:
             [ "$f" = "assets/maps" ] && continue
             cp -r "$f" gladiator/
           done
-          # tools/: ship only the Linux bspc compiler (x86 ELF — runs natively on
-          # x86, and under box86 on the ARM targets)
-          cp tools/vendor/bspc/bspc-linux-x86 tools/vendor/bspc/bspc-linux-x86.htm gladiator/
+          # tools/: ship only the Linux bspc compiler, BSPC 1.4 exactly as the
+          # 1999 Linux v0.96 drop shipped it (x86 ELF — runs natively on x86,
+          # and under box86 on the ARM targets), with the same manual
+          cp tools/vendor/bspc/bspci386 tools/vendor/bspc/bspc.htm gladiator/
           tar -czf "${PKG}.tar.gz" gladiator
 
       - name: Upload artifact

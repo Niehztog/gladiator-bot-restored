@@ -90,47 +90,79 @@ independent oracles:
 - **Windows** — the primary target. `gladiator.dll` is rebuilt with
   **Microsoft Visual C++ 6.0** (the original 1998 RTM release, identified
   from the DLL's own PE Rich header — not a later service pack, which
-  measurably changes the generated code). Of **817** routines, **779
-  (95%)** come out byte-identical machine code. The rest differ only in
-  register allocation, FPU instruction scheduling, or which of two equally
-  valid code layouts the compiler picked. **Nothing missing, nothing
-  invented.**
+  measurably changes the generated code). Of **820** routines, **814
+  (99%)** come out byte-identical machine code. The other six differ only
+  in register allocation or instruction scheduling, by at most two
+  instructions. **Nothing missing, nothing invented.**
 - **Linux** — a second, independent channel. `gladi386.so` is rebuilt with
-  **gcc 2.7.2.3**, the compiler id Software's own Linux tools used in 1999.
-  Of **810** routines, **718 (89%)** are byte-identical, and another 13
-  assemble to the exact same instruction sequence, just packed into
-  different bytes (register allocation again). The remaining 79 are off
-  by a small instruction-count delta — a handful of extra or reordered
-  instructions from compiler scheduling, not missing logic. Nothing
-  missing here either.
+  **gcc 2.7.2.3**, the compiler recorded inside the 1999 binary itself. Of
+  **810** routines, **807 (99.6%)** are byte-identical; the other three
+  differ in register allocation and scheduling, not in logic. Nothing
+  missing here either. The game module shipped beside it goes one step
+  further: built from this repository's `game/`, it reproduces the 1999
+  `gamei386.so` byte for byte, the whole file and not just its routines.
 
-Each remaining gap is a concrete, measurable target, not a guess — the
-counts above come from a per-routine audit against both oracles, so they
-only move when the source actually does.
+Both oracles compile the *same* source text; the next section explains
+what that means for the two releases. Each remaining gap is a concrete,
+measurable target, not a guess — the counts above come from a per-routine
+audit against both oracles, so they only move when the source actually
+does.
 
 ## A note on "version 0.96"
 
-Mr. Elusive shipped *two* builds under the same v0.96 label:
+Mr. Elusive shipped v0.96 for two platforms, two weeks apart:
 
-- **Windows** (`gladiator.dll` + `gamex86.dll`) — released **1999-07-18**.
-- **Linux**  (`gladi386.so`  + `gamei386.so`)  — released **1999-08-02**,
-  about two weeks later.
+- **Windows** (`gladiator.dll` + `gamex86.dll`) — built **1999-07-18**.
+- **Linux** (`gladi386.so` + `gamei386.so`) — built **1999-08-02**, in a
+  glibc and a libc5 variant.
 
-Despite the matching version number, the Linux build is the **more advanced
-botlib**.  In particular, the Linux `gladi386.so` contains a roughly 7 KB
-moving-brush reachability builder (`F149`, for `func_plat` / `func_train`
-movers) that has **no counterpart in the Windows DLL**, and overall calls
-**11** reach-type handlers vs. the Windows DLL's **6** — about **2.5×**
-more reach-handler code by byte count.  In effect the Linux drop is a
-quiet point-release that the Windows binary never received.
+They are the same bot. Both packages carry the same readme ("version 0.96,
+18th July 1999"), byte-identical bot data (`pak7.pak`) and the same map
+tool, BSPC 1.4 (`bspc.exe` on Windows, `bspci386` on Linux). One source
+text, the one in this repository, compiles to both bot libraries, and
+every routine in the Linux library has its Windows counterpart, apart from
+a few small helpers the Windows compiler folded into their callers. The
+navigation code in particular is identical, down to the same ten
+reachability builders, the routines that work out how a bot can get from
+one area of a map to the next. No source change between the two builds
+has been found. (Earlier versions of this README credited Linux with an
+extra reachability builder, `F149`. That was a misidentification: `F149`
+is `AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge`, which the
+Windows DLL has too.)
 
-The map-prep tool `bspc` is the exception: the version bundled with the
-Linux drop (`bspc-linux-x86`, **v1.2**, dated **1999-05-20**) is actually
-*older* than the Windows `bspc.exe` (**v1.4**, dated **1999-07-18**) — the
-opposite direction from the botlib.  This reconstruction is grounded in
-the **Windows** DLL per the project's fidelity rules, so the extra
-Linux-only botlib code is deliberately *out of scope* for the byte-level
-match, but it is occasionally a useful secondary reference.
+What does differ is the layer each build uses to talk to its platform:
+
+- **Missing navigation files.** When a map has no `.aas` file, the Windows
+  build also looks inside `aas0.zip` … `aas9.zip`, through the Info-ZIP
+  `unzip32.dll` its installer ships. With `autolaunchbspc 1` it then starts
+  WinBSPC, a graphical front end for BSPC, to build the file. The Linux
+  build does neither. Mr. Elusive's own readme says that zipping `.aas`
+  files "only works with the Windows version of the Gladiator bot", and
+  with `autolaunchbspc 1` the Linux build just prints "the BSPC tool is a
+  Win32 program". This reconstruction keeps the Windows zip search, which
+  needs `unzip32.dll` from the original installer (it is not shipped here)
+  and a 32-bit build to load it, and it starts WinBSPC through the same C
+  runtime call as the 1999 DLL.
+- **Random numbers.** Both builds take `rand()` from the C library, but it
+  is wired differently. On Windows, `gladiator.dll` and `gamex86.dll` each
+  carry a private copy of the C runtime. The bot library seeds its copy
+  from the clock. Nothing seeds the game library's copy, and the `rand()`
+  call id's engine makes every server frame, to keep randomness
+  time-dependent, cannot reach it. So the game library's draws, such as
+  which bot `bots_minplayers` or `addrandom` picks next, start from
+  the same state every time the server starts. On Linux the engine and
+  both libraries draw from one shared generator, so the clock seed and the
+  engine's draws reach the game library too. (This project's own Windows
+  builds use the shared `msvcrt.dll`, so they behave like Linux here.)
+- **Files and paths.** Backslashes versus forward slashes, `gladiator.dll`
+  versus `gladi386.so` as the default `botlib`, and the Win32 or POSIX call
+  that finds `bots/*.cfg`. None of this changes play.
+- **Machine code.** Two different compilers turned the same source into
+  different instructions. The logic is the same, and so are the 1999 bugs
+  this project preserves in the shared code. But where one of those bugs
+  reads uninitialized or out-of-bounds memory, it finds whatever that
+  build's stack layout and C library left there, so its symptoms can
+  differ between the two.
 
 ## Credits
 

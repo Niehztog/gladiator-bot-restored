@@ -306,33 +306,40 @@ typedef float vec3_t[3];
 /* signed high-word/dword accessors */
 #define SHIDWORD(x)  (*((int *)&(x) + 1))
 
-/* Stubs for the statically-linked MSVC CRT helpers the bot code still calls.
+/* Placeholders for the statically-linked MSVC CRT helpers the bot code calls.
  *
- * These four definitions (plus COERCE_FLOAT above: five in all) are compiled into
- * EVERY TU of the MSVC6 oracle, and that count is load-bearing.  cl.exe /O2 breaks
- * some register ties by how many function definitions precede the function in its
- * TU, measured by inserting N dummy definitions: BotLoadCharacter matches only for
- * N >= 5, BotLoadSynonyms for 2 <= N <= 13, PC_ReadDefineParms for N == 0 or N >= 5.
- * Five satisfies all three.  Declarations count too, not only definitions: one more
- * kernel32 prototype in l_utils.h flipped AAS_TraceBSPModel, and PC_ReadDefineParms
- * needs >= 3 more names in scope -- which Q3's own `#include "l_log.h"` in
- * l_precomp.c supplies.  (The thresholds above were measured before that include.)
+ * None of them is called any more.  The Windows code calls the CRT itself, exactly as
+ * the DLL does: sub_1000E140 calls _spawnl (0x10052E44), and sub_1000E430 and
+ * sub_10041FF0 call _getcwd (0x1004501E), _chdir (0x10044F98) and remove
+ * (0x10044EDE), each of them LIBCMT's own code.  The oracle links the same LIBCMT
+ * bodies, instruction for instruction, and its import table is now the DLL's.
+ *
+ * The four definitions stay, uncalled, because they are load-bearing for the MSVC6
+ * oracle.  They and COERCE_FLOAT above are compiled into EVERY TU, and cl.exe /O2
+ * breaks some register ties by what is defined before the function in its TU.  Three
+ * canaries show it: BotLoadCharacter, BotLoadSynonyms and PC_ReadDefineParms.
+ * Measured 2026-09-29, with the calls above in place:
+ *   - all four kept (the _chdir one renamed, so that it no longer hides the CRT's):
+ *     all three MATCH;
+ *   - all four deleted: BotLoadCharacter is 6 bytes off;
+ *   - only SpawnProcess kept: PC_ReadDefineParms is 6 bytes off;
+ *   - SpawnProcess replaced by a _spawnl prototype or by a parameterless definition:
+ *     PC_ReadDefineParms is 6 bytes off; by <process.h>: BotLoadSynonyms is.
+ * So it is the count and shape of the definitions, not their names.  An earlier probe
+ * (N dummy definitions; BotLoadCharacter needs N >= 5, BotLoadSynonyms 2 <= N <= 13,
+ * PC_ReadDefineParms N == 0 or N >= 5) predates the l_log.h include in l_precomp.c
+ * and is stale.  Declarations matter too: one more kernel32 prototype in l_utils.h
+ * flipped AAS_TraceBSPModel.
  *
  * Not <windows.h>, although winnt.h also happens to define five x86 `__inline`
  * functions: force-including it into every TU (2026-09-28) broke BotLoadCharacter
- * and PC_ReadDefineParms and moved none of the open register ties.  The real
- * replacement for these stubs is the CRT itself -- sub_1000E140 calls _spawnl
- * (0x10052E44, `_spawnve(mode, cmd, &arg0, NULL)`), which is why the DLL imports
- * CreateProcessA, GetExitCodeProcess and WaitForSingleObject and our oracle does not.
- * Do not scope or remove these stubs without re-checking all three canaries. */
+ * and PC_ReadDefineParms and moved none of the open register ties.
+ * Do not remove or reshape these definitions without re-checking all three canaries. */
 #ifdef _WIN32
-/* Windows-only winbspc/zip subsystem (sub_1000E140/sub_1000E430, sub_10041FF0);
- * the Linux botlib has neither a process-spawn nor a chdir-for-bspc path. */
 static int    remove_file(const char *path) { return remove(path); }
 static int    getcwd_locked(char *buf, int size) { return getcwd(buf, size) ? 0 : -1; }
 static intptr_t SpawnProcess(int mode, char *file, char *args, char *cmd, char *addargs) { (void)mode; (void)file; (void)args; (void)cmd; (void)addargs; return -1; }
-/* _access is provided by MinGW's <io.h>; _chdir by <direct.h> — use POSIX wrappers */
-static int    _chdir(const char *path) { return chdir(path); }
+static int    chdir_stub(const char *path) { return chdir(path); }
 #endif /* _WIN32 */
 
 #ifndef _WIN32
