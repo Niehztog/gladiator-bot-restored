@@ -359,6 +359,16 @@ jobs:
             leave a teleporter with no route onto it; five teleporters on the Rocket
             Arena 2 maps had none. Every plane now gets the full test, as in
             Quake III. <!-- fix: aas-link-axial-sign -->
+          - A bot idling with the Ground Zero chainfist made the game print
+            `WARNING: tried to use unicast for a bot` without ending the line, so the
+            next console message (a frag, a chat line, `Timelimit hit.`) was glued onto
+            it and tools that read the server log missed it. The warning now ends its
+            line. <!-- fix: bot-unicast-newline -->
+          - `BotValidChatPosition`, which decides whether a bot may stop to chat, passed
+            its ground check's trace arguments in the wrong order. For the bots in every
+            other client slot the check never saw the floor, so they could start to chat
+            while riding a lift or standing on a door. The check now traces against solid
+            ground for every bot, as in Quake III. <!-- fix: chat-position-trace-args -->
 
           Where Quake III later fixed the same code, the fix is its own correction —
           Mr. Elusive wrote both bot libraries — and where it has no counterpart, the

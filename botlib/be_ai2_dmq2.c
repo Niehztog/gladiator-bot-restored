@@ -550,7 +550,17 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   start[2] = start[2] + 1.0f;
   end[2] = end[2] - 100.0f;
   AAS_PresenceTypeBoundingBox(PRESENCE_CROUCH, (float *)mins, (float *)maxs);
+  /* Both images pass 4 as passent and the client number as the content mask
+   * (push [esi+4], push 4 @10021ccf; the same pair @2c768), so for an even
+   * client the mask lacks CONTENTS_SOLID and the trace can only report the
+   * world.  GLAD_SERVERFIX(chat-position-trace-args) builds Q3's call,
+   * BotAI_Trace(..., bs->client, MASK_SOLID), in Gladiator's terms: the bot's
+   * own entity, which is bs->entitynum here, and Q2's MASK_SOLID. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(chat-position-trace-args) */
+  trace = AAS_Trace(start, (float*)mins, (float*)maxs, end, bs->entitynum, 3);
+#else
   trace = AAS_Trace(start, (float*)mins, (float*)maxs, end, 4, bs->client);
+#endif
   if ( trace.ent != 0 )
     return 0;
   return 1;

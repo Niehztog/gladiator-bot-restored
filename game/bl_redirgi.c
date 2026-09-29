@@ -705,7 +705,11 @@ void Bot_unicast(edict_t *ent, qboolean reliable)
 		ptr = NULL;
 		*ptr = 0;
 #endif //BOT_DEBUG
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(bot-unicast-newline) */
+		gi.dprintf("WARNING: tried to use unicast for a bot\n");
+#else
 		gi.dprintf("WARNING: tried to use unicast for a bot");
+#endif /* GLAD_SERVERFIX */
 		BotClearMessage();
 		return;
 	} //end else

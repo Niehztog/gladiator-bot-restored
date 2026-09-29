@@ -169,9 +169,10 @@ endif
 #
 # main is a RECONSTRUCTION: the default build must reproduce the 1999 binaries,
 # bugs included, or the two ASM-matching oracles and the byte metric stop
-# meaning anything.  Some of those original bugs are nonetheless fatal on a
-# live server (AAS_AASLinkEntity smashes its own frame on densely subdivided
-# custom maps; CTFGrapplePull dereferences a stale grapple pointer).
+# meaning anything.  So every fix of an original bug deviates and sits behind
+# this gate, whether the bug is fatal on a live server (AAS_AASLinkEntity
+# smashes its own frame on densely subdivided custom maps; CTFGrapplePull
+# dereferences a stale grapple pointer) or merely wrong.
 #
 # `make GLAD_SERVERFIX=1` builds those fixes in.  Default 0 -- and an
 # *undefined* GLAD_SERVERFIX also evaluates to 0 under `#if`, which is what
