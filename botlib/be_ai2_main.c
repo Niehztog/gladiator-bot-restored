@@ -190,8 +190,8 @@ void __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   float diff, factor, maxchange;
   int i;
 
-  if ( bs->ideal_viewangles[0] > 180 )
-    bs->ideal_viewangles[0] -= 360;
+  if ( bs->ideal_viewangles[PITCH] > 180 )
+    bs->ideal_viewangles[PITCH] -= 360;
   if ( bs->enemy )
   {
     factor = Characteristic_BFloat(BotCharacter(bs), 9, 0.1f, 1800);

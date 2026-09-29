@@ -398,7 +398,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
         EA_Crouch(bs->client);
       if ( AAS_Swimming(bs->origin) )
         bs->attackcrouch_time = AAS_Time() - 1;
-      if ( AAS_PointContents(bs->eye) & 0x38 )
+      if ( AAS_PointContents(bs->eye) & (CONTENTS_WATER|CONTENTS_SLIME|CONTENTS_LAVA) )
       {
         BotInitialChat(&bs->chatstate, "camp_stop", NULL);
         BotEnterChat(&bs->chatstate, bs->client, 1);

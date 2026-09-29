@@ -871,7 +871,8 @@ int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
  *   - `entitynum <= 0` returns 1, where Q3 returns qfalse;
  *   - the "not updated" test is the older `if (!entinfo.valid)`, which survives
  *     commented out in Q3, whose live code uses `ltime < AAS_Time() - 0.5`;
- *   - contentmask is the literal 3 (Q3 passes CONTENTS_SOLID via a #define).
+ *   - the content mask is Q2's MASK_SOLID, CONTENTS_SOLID|CONTENTS_WINDOW, where
+ *     Q3 passes CONTENTS_SOLID.
  * `viewangles` is unused, present only to match the engine call signature. */
 BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewangles, bot_goal_t *goal)
 {
@@ -884,7 +885,7 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewan
   VectorAdd(goal->mins, goal->mins, middle);
   VectorScale(middle, 0.5, middle);
   VectorAdd(goal->origin, middle, middle);
-  trace = AAS_Trace(eye, NULL, NULL, middle, viewer, 3);
+  trace = AAS_Trace(eye, NULL, NULL, middle, viewer, MASK_SOLID);
   if ( trace.fraction >= 1.0f )
   {
     if ( goal->entitynum <= 0 )

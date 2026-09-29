@@ -89,17 +89,17 @@ void __cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
   info[11] = *(int *)&bs->thinktime;
   v3 = info[24] & ~MFL_ONGROUND;
   info[24] = v3;
-  if ( (bs->snapshot.pm_flags & 4) != 0 )
+  if ( (bs->snapshot.pm_flags & PMF_ON_GROUND) != 0 )
     info[24] = v3 | MFL_ONGROUND;
   v4 = info[24] & ~MFL_TELEPORTED;
   info[24] = v4;
-  if ( (bs->snapshot.pm_flags & 0x20) != 0 && bs->snapshot.pm_time > 0 )
+  if ( (bs->snapshot.pm_flags & PMF_TIME_TELEPORT) != 0 && bs->snapshot.pm_time > 0 )
     info[24] = v4 | MFL_TELEPORTED;
   v5 = info[24] & ~MFL_WATERJUMP;
   info[24] = v5;
-  if ( (bs->snapshot.pm_flags & 8) != 0 && bs->snapshot.pm_time > 0 )
+  if ( (bs->snapshot.pm_flags & PMF_TIME_WATERJUMP) != 0 && bs->snapshot.pm_time > 0 )
     info[24] = v5 | MFL_WATERJUMP;
-  if ( (bs->snapshot.pm_flags & 1) != 0 )
+  if ( (bs->snapshot.pm_flags & PMF_DUCKED) != 0 )
     info[12] = PRESENCE_CROUCH;
   else
     info[12] = PRESENCE_NORMAL;
@@ -132,18 +132,18 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
 
   inventory = bs->inventory;
   stats = bs->snapshot.stats;
-  inventory[INVENTORY_HEALTH] = stats[1];
-  if ( stats[9] )
+  inventory[INVENTORY_HEALTH] = stats[STAT_HEALTH];
+  if ( stats[STAT_TIMER_ICON] )
   {
-    name = AAS_ImageFromIndex(stats[9]);
+    name = AAS_ImageFromIndex(stats[STAT_TIMER_ICON]);
     if ( !_strcmpi(name, "p_quad") )
-      bs->quad_endtime = AAS_Time() + (float)stats[10];
+      bs->quad_endtime = AAS_Time() + (float)stats[STAT_TIMER];
     else if ( !_strcmpi(name, "p_invulnerability") )
-      bs->invulnerability_endtime = AAS_Time() + (float)stats[10];
+      bs->invulnerability_endtime = AAS_Time() + (float)stats[STAT_TIMER];
     else if ( !_strcmpi(name, "p_rebreather") )
-      bs->rebreather_endtime = AAS_Time() + (float)stats[10];
+      bs->rebreather_endtime = AAS_Time() + (float)stats[STAT_TIMER];
     else if ( !_strcmpi(name, "p_envirosuit") )
-      bs->enviro_endtime = AAS_Time() + (float)stats[10];
+      bs->enviro_endtime = AAS_Time() + (float)stats[STAT_TIMER];
   }
   inventory[QUAD_SECONDS] = bs->quad_endtime - AAS_Time();
   if ( inventory[QUAD_SECONDS] <= 0 )
@@ -157,9 +157,9 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
   inventory[ENVIROSUIT_SECONDS] = bs->enviro_endtime - AAS_Time();
   if ( inventory[ENVIROSUIT_SECONDS] <= 0 )
     inventory[ENVIROSUIT_SECONDS] = 0;
-  if ( stats[4] )
+  if ( stats[STAT_ARMOR_ICON] )
   {
-    name = AAS_ImageFromIndex(stats[4]);
+    name = AAS_ImageFromIndex(stats[STAT_ARMOR_ICON]);
     if ( !_strcmpi(name, "i_powershield") )
       bs->powerscreen_seen_time = AAS_Time();
     if ( bs->powerscreen_seen_time > AAS_Time() - 0.9 )
@@ -252,11 +252,11 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
    * `entinfo.effects` from memory independently for each bit test, at whatever
    * sub-width fits that mask (BYTE at +2 for 0x10000, a WORD sign-test at +0 for
    * 0x8000, BYTE at +1 for 0x200) — three separate full-width source expressions. */
-  if ( (entinfo.effects & 0x10000) != 0 )
+  if ( (entinfo.effects & EF_PENT) != 0 )
     bs->inventory[ENEMY_INVULNERABILITY] = 1;
   else
     bs->inventory[ENEMY_INVULNERABILITY] = 0;
-  if ( (entinfo.effects & 0x8000) != 0 )
+  if ( (entinfo.effects & EF_QUAD) != 0 )
     bs->inventory[ENEMY_QUAD] = 1;
   else
     bs->inventory[ENEMY_QUAD] = 0;
@@ -267,7 +267,7 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
    * writes above, which happens to leave eax=1 at the tail.  Two physical
    * fall-to-own-epilogue tails below, not one shared one, matches the original's
    * separate copies for the POWERSCREEN true/false paths. */
-  if ( (entinfo.effects & 0x200) != 0 )
+  if ( (entinfo.effects & EF_POWERSCREEN) != 0 )
   {
     bs->inventory[ENEMY_POWERSCREEN] = 1;
     return;
@@ -281,7 +281,7 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
  * site confirms the parameter type; bot_state_t * matches both neighbours. */
 int __cdecl sub_100214E0(bot_state_t *p)
 {
-  return p->snapshot.stats[16];
+  return p->snapshot.stats[STAT_CHASE];
 }
 
 // gladiator.dll: 10021500..100215A4
@@ -290,7 +290,7 @@ void __cdecl BotBattleUseItems(bot_state_t *bs)
 {
   if ( bs->inventory[25] > 0 )                     /* +1828 silencer ammo */
     EA_UseItem(bs->client, "Silencer");
-  if ( (AAS_PointContents(bs->eye) & 0x38) != 0
+  if ( (AAS_PointContents(bs->eye) & (CONTENTS_WATER|CONTENTS_SLIME|CONTENTS_LAVA)) != 0
        && !bs->inventory[REBREATHER_SECONDS]
        && bs->inventory[26] > 0 )                  /* +1832 rebreather charges */
     EA_UseItem(bs->client, "Rebreather");
@@ -337,28 +337,28 @@ BOOL __cdecl BotIsDead(bot_state_t *bs)
   int v1; // eax
 
   v1 = bs->snapshot.pm_type;
-  return v1 == 2 || v1 == 3;
+  return v1 == PM_DEAD || v1 == PM_GIB;
 }
 
 // gladiator.dll: 100216D0..100216DE
 // gladi386.so:   0002C1A4..0002C1B5
 BOOL __cdecl BotIsObserver(bot_state_t *bs)
 {
-  return bs->snapshot.pm_type == 1;
+  return bs->snapshot.pm_type == PM_SPECTATOR;
 }
 
 // gladiator.dll: 100216F0..100216FE
 // gladi386.so:   0002C1B8..0002C1C9
 BOOL __cdecl BotIntermission(bot_state_t *bs)
 {
-  return bs->snapshot.pm_type == 4;
+  return bs->snapshot.pm_type == PM_FREEZE;
 }
 
 // gladiator.dll: 10021710..10021752
 // gladi386.so:   0002C1CC..0002C223
 BOOL __cdecl sub_10021710(int *a1)
 {
-  if ( (a1[29] & 0x4002) != 0 )
+  if ( (a1[29] & (EF_GIB|EF_FLIES)) != 0 )
     return 1;
   if ( a1[3] >= 1 && a1[3] <= botlibglobals.num_clients )
   {
@@ -533,17 +533,17 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 
   if ( BotIsDead(bs) )
     return 1;
-  if ( (bs->snapshot.pm_flags & 4) == 0 )
+  if ( (bs->snapshot.pm_flags & PMF_ON_GROUND) == 0 )
     return 0;
   VectorCopy(bs->origin, point);
   point[2] = point[2] - 24.0f;
   v4 = (char)AAS_PointContents(point);
-  if ( (v4 & 0x18) != 0 )           /* CONTENTS_LAVA(8) | CONTENTS_SLIME(16) */
+  if ( (v4 & (CONTENTS_LAVA|CONTENTS_SLIME)) != 0 )
     return 0;
   VectorCopy(bs->origin, point);
   point[2] = point[2] + 32.0f;
   v7 = (char)AAS_PointContents(point);
-  if ( (v7 & 0x38) != 0 )           /* CONTENTS_LAVA(8) | SLIME(16) | WATER(32) */
+  if ( (v7 & MASK_WATER) != 0 )
     return 0;
   VectorCopy(bs->origin, start);
   VectorCopy(bs->origin, end);
@@ -557,7 +557,7 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
    * BotAI_Trace(..., bs->client, MASK_SOLID), in Gladiator's terms: the bot's
    * own entity, which is bs->entitynum here, and Q2's MASK_SOLID. */
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(chat-position-trace-args) */
-  trace = AAS_Trace(start, (float*)mins, (float*)maxs, end, bs->entitynum, 3);
+  trace = AAS_Trace(start, (float*)mins, (float*)maxs, end, bs->entitynum, MASK_SOLID);
 #else
   trace = AAS_Trace(start, (float*)mins, (float*)maxs, end, 4, bs->client);
 #endif
@@ -907,7 +907,7 @@ void __cdecl BotRoamGoal(bot_state_t *bs, vec3_t goal)
       bestorg[1] += sign * 700 * random() + 50;
     }
     bestorg[2] += random() * 144 - 96 - 1;
-    trace = AAS_Trace(bs->origin, NULL, NULL, bestorg, bs->entitynum, 3);
+    trace = AAS_Trace(bs->origin, NULL, NULL, bestorg, bs->entitynum, MASK_SOLID);
     VectorSubtract(bestorg, bs->origin, dir);
     len = VectorNormalize(dir);
     if ( len > 100 )
@@ -916,12 +916,12 @@ void __cdecl BotRoamGoal(bot_state_t *bs, vec3_t goal)
       VectorAdd(bs->origin, dir, bestorg);
       VectorCopy(bestorg, belowbestorg);
       belowbestorg[2] -= 800;
-      trace = AAS_Trace(bestorg, NULL, NULL, belowbestorg, bs->entitynum, 3);
+      trace = AAS_Trace(bestorg, NULL, NULL, belowbestorg, bs->entitynum, MASK_SOLID);
       if ( !trace.startsolid )
       {
         trace.endpos[2]++;
         pc = AAS_PointContents(trace.endpos);
-        if ( !(pc & 0x18) )
+        if ( !(pc & (CONTENTS_LAVA | CONTENTS_SLIME)) )
         {
           VectorCopy(bestorg, goal);
           return;
@@ -1074,7 +1074,8 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
   if ( teamplay_shell->value != 0.0f )
   {
     botinfo = AAS_EntityInfo(bs->entitynum);
-    return (botinfo.renderfx & 0x1C00) == (entinfo.renderfx & 0x1C00);
+    return (botinfo.renderfx & (RF_SHELL_RED|RF_SHELL_GREEN|RF_SHELL_BLUE))
+        == (entinfo.renderfx & (RF_SHELL_RED|RF_SHELL_GREEN|RF_SHELL_BLUE));
   }
   if ( ch->value != 0.0f )
   {
@@ -1088,7 +1089,7 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
       return 1;
     return 0;
   }
-  else if ( ((int)dmflags->value & 0x40) || ctf->value != 0.0f )
+  else if ( ((int)dmflags->value & DF_SKINTEAMS) || ctf->value != 0.0f )
   {
     team1 = strchr(ClientSkin(bs->client), '/');
     if ( !team1 )
@@ -1099,7 +1100,7 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
     if ( !_strcmpi(team1, team2) )
       return 1;
   }
-  else if ( (int)dmflags->value & 0x80 )
+  else if ( (int)dmflags->value & DF_MODELTEAMS )
   {
     team1 = strchr(ClientSkin(bs->client), '/');
     if ( team1 )
@@ -1247,7 +1248,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     start[2] += bs->snapshot.viewoffset[2];
     start[2] += wi->offset[2];
     //
-    trace = AAS_Trace(start, mins, maxs, bestorigin, bs->entitynum, 100663299);
+    trace = AAS_Trace(start, mins, maxs, bestorigin, bs->entitynum, MASK_SHOT);
     //if the enemy is NOT hit
     if ( trace.fraction <= 1 && trace.ent != entinfo.number )
       bestorigin[2] += 16;
@@ -1276,7 +1277,7 @@ void BotAimAtEnemy(bot_state_t *bs)
         //try to aim at the ground in front of the enemy
         VectorCopy(entinfo.origin, end);
         end[2] -= 64;
-        trace = AAS_Trace(entinfo.origin, NULL, NULL, end, entinfo.number, 100663299);
+        trace = AAS_Trace(entinfo.origin, NULL, NULL, end, entinfo.number, MASK_SHOT);
         //
         VectorCopy(bestorigin, groundtarget);
         if ( trace.startsolid )
@@ -1284,7 +1285,7 @@ void BotAimAtEnemy(bot_state_t *bs)
         else
           groundtarget[2] = trace.endpos[2] - 8;
         //trace a line from projectile start to ground target
-        trace = AAS_Trace(start, NULL, NULL, groundtarget, bs->entitynum, 100663299);
+        trace = AAS_Trace(start, NULL, NULL, groundtarget, bs->entitynum, MASK_SHOT);
         //if hitpoint is not vertically too far from the ground target
         if ( fabs(trace.endpos[2] - groundtarget[2]) < 50 )
         {
@@ -1297,7 +1298,7 @@ void BotAimAtEnemy(bot_state_t *bs)
             if ( VectorLength(dir) > 150 )
             {
               //check if the bot is visible from the ground target
-              trace = AAS_Trace(trace.endpos, NULL, NULL, entinfo.origin, entinfo.number, 100663299);
+              trace = AAS_Trace(trace.endpos, NULL, NULL, entinfo.origin, entinfo.number, MASK_SHOT);
               if ( trace.fraction >= 1 )
                 VectorCopy(groundtarget, bestorigin);
             }
@@ -1326,10 +1327,10 @@ void BotAimAtEnemy(bot_state_t *bs)
     //set the ideal view angles
     Vector2Angles(dir, bs->ideal_viewangles);
     //take the weapon spread into account for lower skilled bots
-    bs->ideal_viewangles[0] += 6 * wi->vspread * crandom() * (1 - aim_accuracy);
-    bs->ideal_viewangles[0] = anglemod(bs->ideal_viewangles[0]);
-    bs->ideal_viewangles[1] += 6 * wi->hspread * crandom() * (1 - aim_accuracy);
-    bs->ideal_viewangles[1] = anglemod(bs->ideal_viewangles[1]);
+    bs->ideal_viewangles[PITCH] += 6 * wi->vspread * crandom() * (1 - aim_accuracy);
+    bs->ideal_viewangles[PITCH] = anglemod(bs->ideal_viewangles[PITCH]);
+    bs->ideal_viewangles[YAW] += 6 * wi->hspread * crandom() * (1 - aim_accuracy);
+    bs->ideal_viewangles[YAW] = anglemod(bs->ideal_viewangles[YAW]);
     BotChangeViewAngles(bs, bs->thinktime);
     if ( aim_accuracy > 0.8 )
     {
@@ -1407,18 +1408,18 @@ void BotCheckAttack(bot_state_t *bs)
           start[2] += forward[2] * wi->offset[0] + right[2] * wi->offset[1] + wi->offset[2];
           VectorMA(start, 1000.0, forward, end);
           VectorMA(start, -12.0, forward, start);
-          trace = AAS_Trace(start, (float*)mins, (float*)maxs, (float*)(end), bs->entitynum, 100663299);
+          trace = AAS_Trace(start, (float*)mins, (float*)maxs, (float*)(end), bs->entitynum, MASK_SHOT);
           if ( trace.ent == bs->enemy
             || (trace.ent <= 0 || trace.ent > botlibglobals.num_clients || !BotSameTeam(bs, trace.ent))
             && ((v6 = wi->proj, (v6->damagetype & 2) == 0)
              || trace.fraction * 1000.0f >= v6->radius
              || (points = ((double)v6->damage - trace.fraction * 500.0) * 0.5, points <= 0)) )
           {
-            if ( (trace.contents & 2) != 0 )
+            if ( (trace.contents & CONTENTS_WINDOW) != 0 )
             {
               entinfo = AAS_EntityInfo(bs->enemy);
               trace = AAS_Trace(trace.endpos, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0),
-                                entinfo.origin, bs->entitynum, 100663299);
+                                entinfo.origin, bs->entitynum, MASK_SHOT);
               if ( trace.ent != bs->enemy )
                 return;
             }
@@ -1956,7 +1957,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
 // gladi386.so:   00030CC0..00030D42
 BOOL TeamPlayIsOn()
 {
-  return ((int)dmflags->value & 0xC0) != 0
+  return ((int)dmflags->value & (DF_MODELTEAMS | DF_SKINTEAMS)) != 0
       || ctf->value != 0.0f
       || teamplay->value != 0.0f;
 }

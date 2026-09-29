@@ -204,7 +204,7 @@ BOOL __cdecl BotOnMover(vec3_t origin, int entnum, aas_reachability_t* reach)
   org[2] += 24.0f;
   VectorCopy(origin, end);
   end[2] -= 48.0f;
-  trace = AAS_Trace(org, boxmins, boxmaxs, end, entnum, 33619971);
+  trace = AAS_Trace(org, boxmins, boxmaxs, end, entnum, MASK_PLAYERSOLID);
   /* Nested-if with a single shared "return 0" fallthrough, matching Q3, rather than
    * one chained && expression — that makes gcc accumulate the boolean in esi instead
    * of returning at each failure point. */
@@ -419,7 +419,7 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
         VectorCopy(trace.endpos, end);
         end[2] -= 20.0f;
         /* barrier-jump under-water check */
-        if ( (AAS_PointContents((float *)end) & 0x20) != 0 )
+        if ( (AAS_PointContents((float *)end) & CONTENTS_WATER) != 0 )
           break;
         return dist;
       }
@@ -645,7 +645,7 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
     maxs[2] = maxs[2] - 10.0f;
   }
   VectorMA(ms->origin, 3.0f, dir, end);
-  trace = AAS_Trace(ms->origin, mins, maxs, end, ms->entitynum, 33619971);
+  trace = AAS_Trace(ms->origin, mins, maxs, end, ms->entitynum, MASK_PLAYERSOLID);
   /* Q3's cognate is void with a single combined guard and no return statement; every
    * call site here discards the result, and the disasm materialises no return value
    * on either early-out — the same "declared int, no return statement" class as
@@ -903,7 +903,7 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
    * calls it through thunk 0x10001CEE at 0x1003265F, the .so as F664.  The presence
    * type never has a 0x38 liquid bit, so calling that one made every water-jump
    * finish bail out here. */
-  if ( !(AAS_PointContents(pnt) & 0x38) )   /* under-foot liquid check */
+  if ( !(AAS_PointContents(pnt) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER)) )   /* under-foot liquid check */
     return moveresult;
   VectorSubtract(reach->end, ms->origin, dir);
   v6 = rand();
@@ -1498,8 +1498,8 @@ bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachabil
     EA_Move(ms->client, dir, speed);
   }
   Vector2Angles(dir, ms->viewangles);
-  /* int bit-pattern store: the original sets pitch to 90.0f via raw bits. */
-  *(int *)&ms->viewangles[0] = 1119092736;
+  //look straight down
+  ms->viewangles[PITCH] = 90;
   EA_View(ms->client, ms->viewangles);
   moveresult.flags |= MOVERESULT_MOVEMENTVIEWSET;
   EA_UseItem(ms->client, "Rocket Launcher");

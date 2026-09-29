@@ -1313,7 +1313,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
     {
       if ( entdata.solid == 2 )
       {
-        v9 |= 0x2000000u;
+        v9 |= CONTENTS_MONSTER;
       }
       else if ( entdata.solid == 3 )
       {

@@ -62,7 +62,7 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
 
   VectorCopy(origin, testorg);
   testorg[2] -= 2.0f;
-  if ( AAS_PointContents(testorg) & 0x38 )
+  if ( AAS_PointContents(testorg) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER) )
     return 1;
   return 0;
 }
@@ -106,7 +106,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 // gladiator.dll: 1000F130..1000F269
 // gladi386.so:   0001B938..0001BA6B
 // Probe the engine's PointContents() at six positions around a 3D origin, looking
-// for content flag 0x20000000 (Gladiator's "do-not-enter / bot-area-block" overlay).
+// for CONTENTS_LADDER (Q2's 0x20000000).
 // The probes trace a 16x16 box at the eye-height offset (+48 on Z) plus the floor
 // point itself:
 //   (x,   y,   z+48)
@@ -124,20 +124,20 @@ int __cdecl sub_1000F130(vec3_t origin)
 
   VectorCopy(origin, p);
   p[2] += 48.0f;
-  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & CONTENTS_LADDER ) return 1;
   p[0] += 8.0f;
   p[1] += 8.0f;
-  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & CONTENTS_LADDER ) return 1;
   p[0] += -16.0f;
-  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & CONTENTS_LADDER ) return 1;
   p[1] += -16.0f;
-  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & CONTENTS_LADDER ) return 1;
   p[0] += 16.0f;
-  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & CONTENTS_LADDER ) return 1;
   p[0] -= 8.0f;
   p[1] += 8.0f;
   p[2] -= 48.0f;
-  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & CONTENTS_LADDER ) return 1;
   return 0;
 }
 
@@ -219,7 +219,7 @@ float __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   start[2] += forward[2] * rocketoffset[0] + right[2] * rocketoffset[1] + rocketoffset[2];
 
   VectorMA(start, 500.0, forward, end);
-  bsptrace = AAS_Trace(start, NULL, NULL, end, 1, 3);
+  bsptrace = AAS_Trace(start, NULL, NULL, end, 1, MASK_SOLID);
 
   VectorAdd(botmins, botmaxs, v);
   VectorMA(origin, 0.5, v, v);
@@ -530,9 +530,9 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
       pc = AAS_PointContents(feet);
       //get event from pc
       event = 0;
-      if (pc & 8) event |= 0x10;
-      if (pc & 0x10) event |= 8;
-      if (pc & 0x20) event |= 8;
+      if (pc & CONTENTS_LAVA) event |= 0x10;
+      if (pc & CONTENTS_SLIME) event |= 8;
+      if (pc & CONTENTS_WATER) event |= 8;
       //if in lava or slime
       if (event & stopevent)
       {
@@ -590,7 +590,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
         //if it is a gap (lower than one step height)
         if (gaptrace.endpos[2] < org[2] - libvar_sv_step->value - 1)
         {
-          if (!(AAS_PointContents(end) & 0x20))
+          if (!(AAS_PointContents(end) & CONTENTS_WATER))
           {
             VectorCopy(lastorg, move.endpos);
             VectorCopy(frame_test_vel, move.velocity);

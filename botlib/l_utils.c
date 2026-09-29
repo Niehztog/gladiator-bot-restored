@@ -296,17 +296,17 @@ void __cdecl Vector2Angles(float *value1, float *angles)
   }
   else
   {
-    yaw = (float)(int)(atan2(value1[1], value1[0]) * 57.29577951308232);
+    yaw = (float)(int)(atan2(value1[1], value1[0]) * 180 / M_PI);
     if ( yaw < 0 )
       yaw += 360;
     forward = sqrt(value1[0]*value1[0] + value1[1]*value1[1]);
-    pitch = (float)(int)(atan2(value1[2], forward) * 57.29577951308232);
+    pitch = (float)(int)(atan2(value1[2], forward) * 180 / M_PI);
     if ( pitch < 0 )
       pitch += 360;
   }
-  angles[0] = -pitch;
-  angles[1] = yaw;
-  angles[2] = 0;
+  angles[PITCH] = -pitch;
+  angles[YAW] = yaw;
+  angles[ROLL] = 0;
 }
 
 /* The path separator ConvertPath folds to.  The original folds both '/' and '\\'

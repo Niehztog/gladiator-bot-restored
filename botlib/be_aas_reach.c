@@ -430,7 +430,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
       if ( face1num == face2num )
       {
         AAS_FaceCenter(face1num, start);
-        if ( AAS_PointContents(start) & 0x38 )   /* water-edge contents check */
+        if ( AAS_PointContents(start) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER) )   /* water-edge contents check */
         {
           face1 = &aasworld.faces[face1num];
           areasettings = &aasworld.areasettings[area1num];
@@ -2124,7 +2124,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   } //end if
   else
   {
-    if (!(AAS_PointContents(start) & 0x38)) return 0;
+    if (!(AAS_PointContents(start) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER))) return 0;
   } //end else
   //
   //start is now the start point
@@ -2162,9 +2162,9 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     VectorCopy(facecenter, start);
     VectorMA(facecenter, -500, aasworld.planes[face2->planenum].normal, end);
     //
-    bsptrace = AAS_Trace(start, NULL, NULL, end, 0, 100663299);
+    bsptrace = AAS_Trace(start, NULL, NULL, end, 0, MASK_SHOT);
     //the grapple won't stick to the sky and the grapple point should be near the AAS wall
-    if ((bsptrace.surface.flags & 4) || (bsptrace.fraction * 500 >= 32)) continue;
+    if ((bsptrace.surface.flags & SURF_SKY) || (bsptrace.fraction * 500 >= 32)) continue;
     //trace a full bounding box from the area center on the ground to
     //the center of the face
     VectorSubtract(facecenter, areastart, dir);

@@ -267,7 +267,7 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   {
     if ( link->entnum != passent )
     {
-      if ( AAS_EntityCollision(link->entnum, start, boxmins, boxmaxs, end, 33619971, &bsptrace) )
+      if ( AAS_EntityCollision(link->entnum, start, boxmins, boxmaxs, end, MASK_PLAYERSOLID, &bsptrace) )
         collision = 1;
     }
   }

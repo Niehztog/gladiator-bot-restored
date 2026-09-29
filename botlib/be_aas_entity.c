@@ -257,7 +257,7 @@ int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs)
 
   VectorCopy(origin, end);
   end[2] -= 100.0f;
-  trace = AAS_Trace(origin, mins, maxs, end, 0, 3);
+  trace = AAS_Trace(origin, mins, maxs, end, 0, MASK_SOLID);
   if ( trace.startsolid )
     return 0;
   VectorCopy(trace.endpos, origin);
@@ -523,8 +523,10 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
   {
     if ( AAS_inPVS(eye, middle) )
     {
-    /* default: trace from viewer (a2) to entity middle */
-    contents_mask = 0x2030003;        /* CONTENTS_SOLID | CONTENTS_PLAYERCLIP (Q2 trace mask) */
+    /* default: trace from viewer (a2) to entity middle.  Q3 starts from
+     * CONTENTS_SOLID|CONTENTS_PLAYERCLIP; the 1999 mask is 0x2030003, which is
+     * Q2's MASK_PLAYERSOLID plus the monster clip. */
+    contents_mask = MASK_PLAYERSOLID|CONTENTS_MONSTERCLIP;
     passent = viewer;
     hitent = a5;
     VectorCopy(((float *)eye), start);
@@ -533,12 +535,12 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
      * fromcontents stay uninitialised, the trace direction never swaps when one endpoint
      * is underwater, and visibility across water surfaces fails. */
     eyecontents = AAS_PointContents((float *)middle);
-    if ( (eyecontents & 0x38) != 0 )
-      contents_mask = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
+    if ( (eyecontents & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER)) != 0 )
+      contents_mask |= (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER);
     fromcontents = AAS_PointContents(eye);
-    if ( (fromcontents & 0x38) != 0 )
+    if ( (fromcontents & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER)) != 0 )
     {
-      if ( (contents_mask & 0x38) == 0 )
+      if ( (contents_mask & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER)) == 0 )
       {
         passent = a5;
         hitent = viewer;
@@ -546,17 +548,18 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
         VectorCopy(middle, start);
         VectorCopy(((float *)eye), end);
       }
-      contents_mask ^= 0x38u;
+      contents_mask ^= (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER);
     }
     trace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask);
     /* if trace hit a translucent water/slime surface, retrace through it */
-    if ( (LOBYTE(trace.contents) & 0x38) != 0 && (LOBYTE(trace.surface.flags) & 0x30) != 0 )
+    if ( (LOBYTE(trace.contents) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER)) != 0
+         && (LOBYTE(trace.surface.flags) & (SURF_TRANS33|SURF_TRANS66)) != 0 )
     {
-      /* Compound assignment, not `AAS_Trace(…, contents_mask & 0xFFFFFFC7)`: the
+      /* Compound assignment, not `AAS_Trace(…, contents_mask & ~(…))`: the
        * original clears the liquid bits IN PLACE (`and esi,0xffffffc7`).  Masking
        * into a temporary instead lets gcc narrow it to `and al,0xc7` on a copy,
-       * because 0xFFFFFFC7 only touches the low byte. */
-      contents_mask &= 0xFFFFFFC7;
+       * because the mask only touches the low byte. */
+      contents_mask &= ~(CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER);
       trace = AAS_Trace(trace.endpos, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask);
     }
     if ( trace.fraction >= 1.0f || LODWORD(trace.ent) == hitent )
