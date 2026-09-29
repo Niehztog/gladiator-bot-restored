@@ -32,12 +32,12 @@
  * Deliberately NOT `static`: gladi386.so exports it as a `D` symbol
  * (0005bbcc D soundinfo_fields), which a file-static array can never be. */
 char *soundinfo_fields[] = {
-    FE("name",        0x00, 0x004, 0, 0x00000000),
-    FE("volume",      0x50, 0x203, 0, 0x42A00000),  /* 80.0f */
-    FE("duration",    0x54, 0x203, 0, 0x41200000),  /* 10.0f */
-    FE("type",        0x58, 0x002, 0, 0x00000000),
-    FE("recognition", 0x5C, 0x003, 0, 0x3F800000),  /* 1.0f */
-    FE("string",      0x60, 0x004, 0, 0x00000000),
+    FE("name",        0x00, FT_STRING, 0, 0x00000000),
+    FE("volume",      0x50, FT_FLOAT|FT_BOUNDED, 0, 0x42A00000),  /* 80.0f */
+    FE("duration",    0x54, FT_FLOAT|FT_BOUNDED, 0, 0x41200000),  /* 10.0f */
+    FE("type",        0x58, FT_INT, 0, 0x00000000),
+    FE("recognition", 0x5C, FT_FLOAT, 0, 0x3F800000),  /* 1.0f */
+    FE("string",      0x60, FT_STRING, 0, 0x00000000),
     FE_END
 };
 structdef_t soundinfo_struct = { 176, soundinfo_fields };

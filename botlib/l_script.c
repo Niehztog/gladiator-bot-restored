@@ -23,41 +23,84 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
-/* The punctuation_t[] array at VA 0x1005FE00 (52 entries + NULL), identical to Q3's
- * default_punctuations.  PS_CreatePunctuationTable walks it with a 3-slot stride and
- * fills each `next` at runtime.  String literals are const while punctuation_t.p is
+/* The punctuation_t[] array at VA 0x1005FE00, Q3's default_punctuations entry for
+ * entry, so its text is Q3's; the '$' entry is unconditional, as Gladiator has no
+ * DOLLAR switch.  PS_CreatePunctuationTable walks it with a 3-slot stride and fills
+ * each `next` at runtime.  String literals are const while punctuation_t.p is
  * char* — BOTCFLAGS suppresses that warning. */
-punctuation_t default_punctuations[] = {
-    /* multi-char — longest first */
-    {">>=", 1,  NULL}, {"<<=", 2,  NULL},
-    {"...", 3,  NULL}, {"##",  4,  NULL},
-    {"&&",  5,  NULL}, {"||",  6,  NULL},
-    {">=",  7,  NULL}, {"<=",  8,  NULL},
-    {"==",  9,  NULL}, {"!=",  10, NULL},
-    {"*=",  11, NULL}, {"/=",  12, NULL},
-    {"%=",  13, NULL}, {"+=",  14, NULL},
-    {"-=",  15, NULL}, {"++",  16, NULL},
-    {"--",  17, NULL}, {"&=",  18, NULL},
-    {"|=",  19, NULL}, {"^=",  20, NULL},
-    {">>",  21, NULL}, {"<<",  22, NULL},
-    {"->",  23, NULL}, {"::",  24, NULL},
-    {".*",  25, NULL},
-    /* single-char */
-    {"*",   26, NULL}, {"/",   27, NULL},
-    {"%",   28, NULL}, {"+",   29, NULL},
-    {"-",   30, NULL}, {"=",   31, NULL},
-    {"&",   32, NULL}, {"|",   33, NULL},
-    {"^",   34, NULL}, {"~",   35, NULL},
-    {"!",   36, NULL}, {">",   37, NULL},
-    {"<",   38, NULL}, {".",   39, NULL},
-    {",",   40, NULL}, {";",   41, NULL},
-    {":",   42, NULL}, {"?",   43, NULL},
-    {"(",   44, NULL}, {")",   45, NULL},
-    {"{",   46, NULL}, {"}",   47, NULL},
-    {"[",   48, NULL}, {"]",   49, NULL},
-    {"\\",  50, NULL}, {"#",   51, NULL},
-    {"$",   52, NULL},
-    {NULL,  0,  NULL}  /* sentinel */
+punctuation_t default_punctuations[] =
+{
+	//binary operators
+	{">>=",P_RSHIFT_ASSIGN, NULL},
+	{"<<=",P_LSHIFT_ASSIGN, NULL},
+	//
+	{"...",P_PARMS, NULL},
+	//define merge operator
+	{"##",P_PRECOMPMERGE, NULL},
+	//logic operators
+	{"&&",P_LOGIC_AND, NULL},
+	{"||",P_LOGIC_OR, NULL},
+	{">=",P_LOGIC_GEQ, NULL},
+	{"<=",P_LOGIC_LEQ, NULL},
+	{"==",P_LOGIC_EQ, NULL},
+	{"!=",P_LOGIC_UNEQ, NULL},
+	//arithmatic operators
+	{"*=",P_MUL_ASSIGN, NULL},
+	{"/=",P_DIV_ASSIGN, NULL},
+	{"%=",P_MOD_ASSIGN, NULL},
+	{"+=",P_ADD_ASSIGN, NULL},
+	{"-=",P_SUB_ASSIGN, NULL},
+	{"++",P_INC, NULL},
+	{"--",P_DEC, NULL},
+	//binary operators
+	{"&=",P_BIN_AND_ASSIGN, NULL},
+	{"|=",P_BIN_OR_ASSIGN, NULL},
+	{"^=",P_BIN_XOR_ASSIGN, NULL},
+	{">>",P_RSHIFT, NULL},
+	{"<<",P_LSHIFT, NULL},
+	//reference operators
+	{"->",P_POINTERREF, NULL},
+	//C++
+	{"::",P_CPP1, NULL},
+	{".*",P_CPP2, NULL},
+	//arithmatic operators
+	{"*",P_MUL, NULL},
+	{"/",P_DIV, NULL},
+	{"%",P_MOD, NULL},
+	{"+",P_ADD, NULL},
+	{"-",P_SUB, NULL},
+	{"=",P_ASSIGN, NULL},
+	//binary operators
+	{"&",P_BIN_AND, NULL},
+	{"|",P_BIN_OR, NULL},
+	{"^",P_BIN_XOR, NULL},
+	{"~",P_BIN_NOT, NULL},
+	//logic operators
+	{"!",P_LOGIC_NOT, NULL},
+	{">",P_LOGIC_GREATER, NULL},
+	{"<",P_LOGIC_LESS, NULL},
+	//reference operator
+	{".",P_REF, NULL},
+	//seperators
+	{",",P_COMMA, NULL},
+	{";",P_SEMICOLON, NULL},
+	//label indication
+	{":",P_COLON, NULL},
+	//if statement
+	{"?",P_QUESTIONMARK, NULL},
+	//embracements
+	{"(",P_PARENTHESESOPEN, NULL},
+	{")",P_PARENTHESESCLOSE, NULL},
+	{"{",P_BRACEOPEN, NULL},
+	{"}",P_BRACECLOSE, NULL},
+	{"[",P_SQBRACKETOPEN, NULL},
+	{"]",P_SQBRACKETCLOSE, NULL},
+	//
+	{"\\",P_BACKSLASH, NULL},
+	//precompiler operator
+	{"#",P_PRECOMP, NULL},
+	{"$",P_DOLLAR, NULL},
+	{NULL, 0}
 };
 
 // gladiator.dll: 1003E120..1003E201
@@ -119,7 +162,7 @@ void ScriptError(script_t *script, char *Format, ...)
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
-  if ( *(unsigned char *)&script->flags & 1 )
+  if ( script->flags & SCFL_NOERRORS )
     return;
   va_start(va, Format);
   vsprintf(Buffer, Format, va);
@@ -133,7 +176,7 @@ void ScriptWarning(script_t *script, char *Format, ...)
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
-  if ( *(unsigned char *)&script->flags & 2 )
+  if ( script->flags & SCFL_NOWARNINGS )
     return;
   va_start(va, Format);
   vsprintf(Buffer, Format, va);
@@ -305,19 +348,19 @@ int __cdecl PS_ReadString(script_t *script, token_t *token, int quote)
   char *tmpscript_p;
 
   if ( quote == 34 )
-    token->type = 1;
+    token->type = TT_STRING;
   else
-    token->type = 2;
+    token->type = TT_LITERAL;
   len = 0;
   token->string[len++] = *script->script_p++;
   while ( 1 )
   {
-    if ( len >= 1022 )
+    if ( len >= MAX_TOKEN - 2 )
     {
-      ScriptError(script, "string longer than MAX_TOKEN = %d", 1024);
+      ScriptError(script, "string longer than MAX_TOKEN = %d", MAX_TOKEN);
       return 0;
     }
-    if ( *script->script_p == 92 && (script->flags & 8) == 0 )
+    if ( *script->script_p == 92 && (script->flags & SCFL_NOSTRINGESCAPECHARS) == 0 )
     {
       if ( !PS_ReadEscapeCharacter(script, &token->string[len]) )
       {
@@ -329,7 +372,7 @@ int __cdecl PS_ReadString(script_t *script, token_t *token, int quote)
     else if ( *script->script_p == quote )
     {
       ++script->script_p;
-      if ( (script->flags & 4) != 0 )
+      if ( (script->flags & SCFL_NOSTRINGWHITESPACES) != 0 )
         break;
       tmpscript_p = script->script_p;
       tmpline = script->line;
@@ -377,13 +420,13 @@ int __cdecl PS_ReadName(script_t *script, token_t *token)
   int len = 0;
   char c; // al
 
-  token->type = 4;
+  token->type = TT_NAME;
   do
   {
     token->string[len++] = *script->script_p++;
-    if ( len >= 1024 )
+    if ( len >= MAX_TOKEN )
     {
-      ScriptError(script, "name longer than MAX_TOKEN = %d", 1024);
+      ScriptError(script, "name longer than MAX_TOKEN = %d", MAX_TOKEN);
       return 0;
     }
     c = *script->script_p;
@@ -396,15 +439,14 @@ int __cdecl PS_ReadName(script_t *script, token_t *token)
 
 // gladiator.dll: 1003EAB0..1003EC5F
 // gladi386.so:   000516FC..000518DE
-/* Walks `string` through a plain char* cursor.  Subtype flags: 0x800 = float,
- * 0x8 = decimal, 0x100 = hex, 0x200 = octal, 0x400 = binary. */
+/* Walks `string` through a plain char* cursor. */
 void __cdecl NumberValue(char *string, int subtype, unsigned int *intvalue, long double *floatvalue)
 {
   unsigned int dotfound = 0;
 
   *intvalue = 0;
   *floatvalue = 0.0;
-  if ( (subtype & 0x800) != 0 )
+  if ( (subtype & TT_FLOAT) != 0 )
   {
     while ( *string )
     {
@@ -428,13 +470,13 @@ void __cdecl NumberValue(char *string, int subtype, unsigned int *intvalue, long
     }
     *intvalue = (unsigned int)*floatvalue;
   }
-  else if ( (subtype & 8) != 0 )
+  else if ( (subtype & TT_DECIMAL) != 0 )
   {
     while ( *string )
       *intvalue = *intvalue * 10 + (*string++ - 48);
     *floatvalue = *intvalue;
   }
-  else if ( (subtype & 0x100) != 0 )
+  else if ( (subtype & TT_HEX) != 0 )
   {
     string += 2;
     while ( *string )
@@ -450,14 +492,14 @@ void __cdecl NumberValue(char *string, int subtype, unsigned int *intvalue, long
     }
     *floatvalue = *intvalue;
   }
-  else if ( (subtype & 0x200) != 0 )
+  else if ( (subtype & TT_OCTAL) != 0 )
   {
     ++string;
     while ( *string )
       *intvalue = (*intvalue << 3) + (*string++ - '0');
     *floatvalue = *intvalue;
   }
-  else if ( (subtype & 0x400) != 0 )
+  else if ( (subtype & TT_BINARY) != 0 )
   {
     string += 2;
     while ( *string )
@@ -475,7 +517,7 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
   int octal, dot;
   int i;
 
-  token->type = 3;
+  token->type = TT_NUMBER;
   if ( *script->script_p == 48 && (script->script_p[1] == 120 || script->script_p[1] == 88) )
   {
     token->string[len++] = *script->script_p++;
@@ -485,15 +527,15 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     while ( (c >= 48 && c <= 57) || (c >= 97 && c <= 102) || (c >= 65 && c <= 65) )
     {
       token->string[len++] = *script->script_p++;
-      if ( len >= 1024 )
+      if ( len >= MAX_TOKEN )
       {
         ScriptError(script, "hexadecimal number longer than MAX_TOKEN = %d",
-                    1024);
+                    MAX_TOKEN);
         return 0;
       }
       c = *script->script_p;
     }
-    token->subtype |= 0x100;
+    token->subtype |= TT_HEX;
   }
   else if ( *script->script_p == 48 && (script->script_p[1] == 98 || script->script_p[1] == 66) )
   {
@@ -503,14 +545,14 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     while ( c == 48 || c == 49 )
     {
       token->string[len++] = *script->script_p++;
-      if ( len >= 1024 )
+      if ( len >= MAX_TOKEN )
       {
-        ScriptError(script, "binary number longer than MAX_TOKEN = %d", 1024);
+        ScriptError(script, "binary number longer than MAX_TOKEN = %d", MAX_TOKEN);
         return 0;
       }
       c = *script->script_p;
     }
-    token->subtype |= 0x400;
+    token->subtype |= TT_BINARY;
   }
   else
   {
@@ -521,9 +563,9 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     while ( 1 )
     {
       token->string[len++] = *script->script_p++;
-      if ( len >= 1024 )
+      if ( len >= MAX_TOKEN )
       {
-        ScriptError(script, "number longer than MAX_TOKEN = %d", 1024);
+        ScriptError(script, "number longer than MAX_TOKEN = %d", MAX_TOKEN);
         return 0;
       }
       c = *script->script_p;
@@ -535,11 +577,11 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
         break;
     }
     if ( octal )
-      token->subtype |= 0x200;
+      token->subtype |= TT_OCTAL;
     else
-      token->subtype |= 8;
+      token->subtype |= TT_DECIMAL;
     if ( dot )
-      token->subtype |= 0x800;
+      token->subtype |= TT_FLOAT;
   }
   for ( i = 0; i < 2; i++ )
   {
@@ -552,28 +594,28 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
      * Q3's l_script.c:709 parenthesises it; GLAD_SERVERFIX(script-lu-suffix-guard)
      * builds that form. */
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(script-lu-suffix-guard) */
-    if ( (c == 108 || c == 76) && (token->subtype & 0x2000) == 0 )
+    if ( (c == 108 || c == 76) && (token->subtype & TT_LONG) == 0 )
 #else
-    if ( c == 108 || c == 76 && (token->subtype & 0x2000) == 0 )
+    if ( c == 108 || c == 76 && (token->subtype & TT_LONG) == 0 )
 #endif
     {
       script->script_p++;
-      token->subtype |= 0x2000;
+      token->subtype |= TT_LONG;
     }
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(script-lu-suffix-guard) */
-    else if ( (c == 117 || c == 85) && (token->subtype & 0x4800) == 0 )
+    else if ( (c == 117 || c == 85) && (token->subtype & (TT_UNSIGNED | TT_FLOAT)) == 0 )
 #else
-    else if ( c == 117 || c == 85 && (token->subtype & 0x4800) == 0 )
+    else if ( c == 117 || c == 85 && (token->subtype & (TT_UNSIGNED | TT_FLOAT)) == 0 )
 #endif
     {
       script->script_p++;
-      token->subtype |= 0x4000;
+      token->subtype |= TT_UNSIGNED;
     }
   }
   token->string[len] = 0;
   NumberValue(token->string, token->subtype, &token->intvalue, &token->floatvalue);
-  if ( (token->subtype & 0x800) == 0 )
-    token->subtype |= 0x1000;
+  if ( (token->subtype & TT_FLOAT) == 0 )
+    token->subtype |= TT_INTEGER;
   return 1;
 }
 
@@ -583,7 +625,7 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
  * and store its value in token.subtype.  DEAD in Gladiator. */
 int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
 {
-  token->type = 2; /* TT_LITERAL */
+  token->type = TT_LITERAL;
   token->string[0] = *script->script_p++;
   if ( !*script->script_p )
   {
@@ -619,7 +661,7 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
  * NB the table index `*script->script_p` is a SIGNED char on purpose — the original
  * sign-extends it.  Q3 later changed this to unsigned; do NOT "fix" the
  * -Wchar-subscripts warning here. */
-int __cdecl PS_ReadPunctuation(script_t *script, char *token)
+int __cdecl PS_ReadPunctuation(script_t *script, token_t *token)
 {
   punctuation_t *punc;
   char *p;
@@ -633,10 +675,11 @@ int __cdecl PS_ReadPunctuation(script_t *script, char *token)
     {
       if ( !strncmp(script->script_p, p, len) )
       {
-        strncpy(token, p, 0x400u);
+        strncpy(token->string, p, MAX_TOKEN);
         script->script_p += len;
-        *((_DWORD *)token + 256) = 5;
-        *((_DWORD *)token + 257) = punc->n;
+        token->type = TT_PUNCTUATION;
+        //sub type is the number of the punctuation
+        token->subtype = punc->n;
         return 1;
       }
     }
@@ -657,9 +700,9 @@ int __cdecl PS_ReadPrimitive(script_t *script, token_t *token)
     v3 = *(_BYTE *)(script)->script_p;
     if ( v3 == 59 )
       break;
-    if ( len >= 1024 )
+    if ( len >= MAX_TOKEN )
     {
-      ScriptError(script, "primitive token longer than MAX_TOKEN = %d", 0x400);
+      ScriptError(script, "primitive token longer than MAX_TOKEN = %d", MAX_TOKEN);
       return 0;
     }
     token->string[len++] = *(script)->script_p++;
@@ -706,7 +749,7 @@ int __cdecl PS_ReadToken(script_t *script, token_t *token)
   {
     if ( !PS_ReadNumber(script, token) ) return 0;
   }
-  else if ( script->flags & 0x10 )
+  else if ( script->flags & SCFL_PRIMITIVE )
   {
     return PS_ReadPrimitive(script, token);
   }
@@ -716,7 +759,7 @@ int __cdecl PS_ReadToken(script_t *script, token_t *token)
   {
     if ( !PS_ReadName(script, token) ) return 0;
   }
-  else if ( !PS_ReadPunctuation(script, (char *)token) )
+  else if ( !PS_ReadPunctuation(script, token) )
   {
     ScriptError(script, "can't read token");
     return 0;
@@ -749,7 +792,7 @@ int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
 // gladi386.so:   0005226C..0005252C
 int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t *token)
 {
-  char str[1024]; // [esp+10h] [ebp-400h] BYREF
+  char str[MAX_TOKEN]; // [esp+10h] [ebp-400h] BYREF
 
   if ( !PS_ReadToken(script, token) )
   {
@@ -758,44 +801,44 @@ int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t 
   }
   if ( token->type != type )
   {
-    if ( type == 1 )
+    if ( type == TT_STRING )
       strcpy(str, "string");
-    if ( type == 2 )
+    if ( type == TT_LITERAL )
       strcpy(str, "literal");
-    if ( type == 3 )
+    if ( type == TT_NUMBER )
       strcpy(str, "number");
-    if ( type == 4 )
+    if ( type == TT_NAME )
       strcpy(str, "name");
-    if ( type == 5 )
+    if ( type == TT_PUNCTUATION )
       strcpy(str, "punctuation");
     ScriptError(script, "expected a %s, found %s", str, token);
     return 0;
   }
-  if ( token->type == 3 )
+  if ( token->type == TT_NUMBER )
   {
     if ( (token->subtype & subtype) != subtype )
     {
-      if ( (subtype & 8) != 0 )
+      if ( (subtype & TT_DECIMAL) != 0 )
         strcpy(str, "decimal");
-      if ( (subtype & 0x100) != 0 )
+      if ( (subtype & TT_HEX) != 0 )
         strcpy(str, "hex");
-      if ( (subtype & 0x200) != 0 )
+      if ( (subtype & TT_OCTAL) != 0 )
         strcpy(str, "octal");
-      if ( (subtype & 0x400) != 0 )
+      if ( (subtype & TT_BINARY) != 0 )
         strcpy(str, "binary");
-      if ( (subtype & 0x2000) != 0 )
+      if ( (subtype & TT_LONG) != 0 )
         strcat(str, " long");
-      if ( (subtype & 0x4000) != 0 )
+      if ( (subtype & TT_UNSIGNED) != 0 )
         strcat(str, " unsigned");
-      if ( (subtype & 0x800) != 0 )
+      if ( (subtype & TT_FLOAT) != 0 )
         strcat(str, " float");
-      if ( (subtype & 0x1000) != 0 )
+      if ( (subtype & TT_INTEGER) != 0 )
         strcat(str, " integer");
       ScriptError(script, "expected %s, found %s", str, token);
       return 0;
     }
   }
-  else if ( token->type == 5 )
+  else if ( token->type == TT_PUNCTUATION )
   {
     if ( subtype < 0 )
     {
@@ -957,9 +1000,9 @@ long double __cdecl ReadSignedFloat(script_t *script)
   if ( !strcmp(token.string, "-") )
   {
     sign = -1.0;
-    PS_ExpectTokenType(script, 3, 0, &token);
+    PS_ExpectTokenType(script, TT_NUMBER, 0, &token);
   }
-  else if ( token.type != 3 )
+  else if ( token.type != TT_NUMBER )
   {
     ScriptError(script, "expected float value, found %s\n", token.string);
   }
@@ -983,9 +1026,9 @@ int __cdecl ReadSignedInt(script_t *script)
   if ( !strcmp(token.string, "-") )
   {
     sign = -1;
-    PS_ExpectTokenType(script, 3, 0x1000, &token);
+    PS_ExpectTokenType(script, TT_NUMBER, TT_INTEGER, &token);
   }
-  else if ( token.type != 3 || token.subtype == 0x800 )
+  else if ( token.type != TT_NUMBER || token.subtype == TT_FLOAT )
   {
     ScriptError(script, "expected integer value, found %s\n", token.string);
   }

@@ -549,11 +549,11 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int
                       maxframes,
                       maxframes,
                       ms->thinktime,
-                      61,
+                      SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE,
                       0);
     if ( move.frames >= maxframes )
       return 0;
-    if ( (move.stopevent & 0x38) != 0 )
+    if ( (move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE)) != 0 )
       return 0;
     v13 = move.endpos[0] - ms->origin[0];
     hordir[0] = v13;
@@ -1252,7 +1252,7 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
       if ( ms->moveflags & MFL_SWIMMING ) result.flags |= MOVERESULT_SWIMVIEW;
 #endif
       /* this isn't a failure... just wait till the elevator comes down */
-      result.type = 1;
+      result.type = RESULTTYPE_ELEVATORUP;
       result.flags |= MOVERESULT_WAITING;
       return result;
     }

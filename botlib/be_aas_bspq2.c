@@ -1939,7 +1939,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
       epair = (bsp_epair_t *)GetClearedMemory(sizeof(bsp_epair_t));
       epair->next = ent->epairs;
       ent->epairs = epair;
-      if ( token.type != 1 )
+      if ( token.type != TT_STRING )
       {
         ScriptError(script, "invalid %s\n", token.string);
         AAS_FreeBSPEntities(entities);
@@ -1949,7 +1949,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
       StripDoubleQuotes(token.string);
       epair->key = (char *)GetMemory(strlen(token.string) + 1);
       strcpy(epair->key, token.string);
-      if ( !PS_ExpectTokenType(script, 1, 0, &token) )
+      if ( !PS_ExpectTokenType(script, TT_STRING, 0, &token) )
       {
         AAS_FreeBSPEntities(entities);
         FreeScript(script);

@@ -92,7 +92,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
     {
       if ( !strcmp(token.string, "character") )
       {
-        if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
+        if ( !PC_ExpectTokenType(source, TT_STRING, 0, token.string) )
         {
           FreeSource(source);
           return 0;
@@ -110,7 +110,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
           {
             if ( !strcmp(token.string, "}") )
               break;
-            if ( token.type != 3 || (token.subtype & 0x1000) == 0 )
+            if ( token.type != TT_NUMBER || (token.subtype & TT_INTEGER) == 0 )
             {
               SourceError(source, "expected integer index, found %s\n", token.string);
               FreeSource(source);
@@ -130,11 +130,11 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
               FreeSource(source);
               return 0;
             }
-            if ( token.type == 3 )
+            if ( token.type == TT_NUMBER )
             {
               if ( pass )
               {
-                if ( (token.subtype & 0x800) != 0 )
+                if ( (token.subtype & TT_FLOAT) != 0 )
                 {
                   BC_PAIRS(ch)[index].value._float = token.floatvalue;
                   BC_PAIRS(ch)[index].type = 2;
@@ -149,7 +149,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
             /* Q3's `else if (TT_STRING) ... else error` order, not IDA's
              * error-test-first: gladi386.so places the error block after the
              * string arm (130 -> 68 insn diffs on its own). */
-            else if ( token.type == 1 )
+            else if ( token.type == TT_STRING )
             {
               StripDoubleQuotes(token.string);
               if ( pass )

@@ -82,7 +82,7 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 // gladi386.so:   0001D4A4..0001D4B7
 int __cdecl AAS_KeepFace(aas_face_t *face)
 {
-  if ( !(face->faceflags & 2) )
+  if ( !(face->faceflags & FACE_LADDER) )
     return 0;
   else
     return 1;

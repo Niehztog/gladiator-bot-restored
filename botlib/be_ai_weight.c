@@ -37,10 +37,10 @@ int __cdecl ReadValue(source_t *source, float *value)
   if ( !strcmp(token.string, "-") )
   {
     SourceWarning(source, "negative value set to zero\n");
-    if ( !PC_ExpectTokenType(source, 3, 0, token.string) )
+    if ( !PC_ExpectTokenType(source, TT_NUMBER, 0, token.string) )
       return 0;
   }
-  if ( token.type != 3 )
+  if ( token.type != TT_NUMBER )
   {
     SourceError(source, "invalid return value %s\n", token.string);
     return 0;
@@ -57,7 +57,7 @@ int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
 {
   if ( PC_CheckTokenString(source, "balance") )
   {
-    fs->type = 1;
+    fs->type = WT_BALANCE;
     if ( !PC_ExpectTokenString(source, "(") )
       return 0;
     if ( !ReadValue(source, &fs->weight) )
@@ -144,7 +144,7 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
   lastfs = 0;
   if ( !PC_ExpectTokenString(source, "(") )
     return 0;
-  if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
+  if ( !PC_ExpectTokenType(source, TT_NUMBER, TT_INTEGER, token.string) )
     return 0;
   index = token.intvalue;
   if ( !PC_ExpectTokenString(source, ")") )
@@ -178,7 +178,7 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
       }
       else
       {
-        if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
+        if ( !PC_ExpectTokenType(source, TT_NUMBER, TT_INTEGER, token.string) )
         {
           FreeFuzzySeperators_r(firstfs);
           return 0;
@@ -296,12 +296,12 @@ weightconfig_t *__cdecl ReadWeightConfig(char *filename)
  {
    if ( !strcmp(token.string, "weight") )
    {
-     if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
+     if ( cfg->numweights >= MAX_WEIGHTS )
      {
        SourceWarning(src, "too many fuzzy weights\n");
        break;
      }
-     if ( !PC_ExpectTokenType(src, 1, 0, token.string) )
+     if ( !PC_ExpectTokenType(src, TT_STRING, 0, token.string) )
      {
        FreeWeightConfig2(cfg);
        FreeSource(src);
@@ -392,7 +392,7 @@ weightconfig_t *__cdecl ReadWeightConfig(char *filename)
 // to bots/*_i.c / *_w.c.  Live in Q3 via WriteWeightConfig.
 qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *fs)
 {
-  if ( fs->type == 1 )
+  if ( fs->type == WT_BALANCE )
   {
     if ( fprintf(fp, " return balance(") < 0) return 0;
     if ( !WriteFloat(fp, fs->weight)) return 0;
@@ -639,7 +639,7 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
   {
     EvolveFuzzySeperator_r(fs->child);
   }
-  else if ( fs->type == 1 )
+  else if ( fs->type == WT_BALANCE )
   {
     /* crandom() is its own paren group, so the doubling (which MSVC strength-reduces
      * to `fadd st(0),st`) happens BEFORE the (maxweight-minweight) multiply. */
@@ -696,7 +696,7 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
   {
     ScaleFuzzySeperator_r(fs->child, scale);
   }
-  else if ( fs->type == 1 )
+  else if ( fs->type == WT_BALANCE )
   {
     fs->weight = (fs->maxweight + fs->minweight) * scale;
     if ( fs->weight < fs->minweight )
@@ -769,9 +769,9 @@ void __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t 
     }
     InterbreedFuzzySeperator_r(child, fs2->child);
   }
-  else if ( fs1->type == 1 )
+  else if ( fs1->type == WT_BALANCE )
   {
-    if ( fs2->type != 1 )
+    if ( fs2->type != WT_BALANCE )
     {
       botimport.Print(PRT_ERROR, "can't merge weight configs\n");
       return;

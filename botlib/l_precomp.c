@@ -26,6 +26,12 @@
                        * declarations -- without them PC_ReadDefineParms differs */
 #include "l_utils.h"
 
+/* Q3 l_precomp.c's own limits, verbatim; Gladiator always hashes its defines, so
+ * the DEFINEHASHING switch is left out. */
+#define MAX_DEFINEPARMS			128
+
+#define DEFINEHASHSIZE		1024
+
 define_t *globaldefines;
 
 
@@ -293,14 +299,14 @@ int __cdecl PC_StringizeTokens(token_t *tokens, token_t *token)
 {
   token_t *i;
 
-  token->type = 1;
+  token->type = TT_STRING;
   token->whitespace_p = NULL;
   token->endwhitespace_p = NULL;
   token->string[0] = 0;
   strcat(token->string, "\"");
   for ( i = tokens; i; i = i->next )
-    strncat(token->string, i->string, 1024 - strlen(token->string));
-  strncat(token->string, "\"", 1024 - strlen(token->string));
+    strncat(token->string, i->string, MAX_TOKEN - strlen(token->string));
+  strncat(token->string, "\"", MAX_TOKEN - strlen(token->string));
   return 1;
 }
 
@@ -308,15 +314,15 @@ int __cdecl PC_StringizeTokens(token_t *tokens, token_t *token)
 // gladi386.so:   0004B5F0..0004B66A
 int __cdecl PC_MergeTokens(token_t *t1, token_t *t2)
 {
-  if ( t1->type == 4 )
+  if ( t1->type == TT_NAME )
   {
-    if ( t2->type == 4 || t2->type == 3 )
+    if ( t2->type == TT_NAME || t2->type == TT_NUMBER )
     {
       strcat(t1->string, t2->string);
       return 1;
     }
   }
-  if ( t1->type == 1 && t2->type == 1 )
+  if ( t1->type == TT_STRING && t2->type == TT_STRING )
   {
     t1->string[strlen(t1->string) - 1] = 0;
     strcat(t1->string, &t2->string[1]);
@@ -354,7 +360,7 @@ unsigned int __cdecl PC_NameHash(const char *name)
       v4 = 0;
     v4 = abs(v4);
   }
-  return v4 & 0x3FF;
+  return v4 & (DEFINEHASHSIZE-1);
 }
 
 // gladiator.dll: 10039CB0..10039CCF
@@ -451,10 +457,10 @@ void __cdecl PC_AddBuiltinDefines(source_t *source)
   char *name;
   int   value;
   } builtin[] = {
-  { "__LINE__", 1 },
-  { "__FILE__", 2 },
-  { "__DATE__", 3 },
-  { "__TIME__", 4 },
+  { "__LINE__", BUILTIN_LINE },
+  { "__FILE__", BUILTIN_FILE },
+  { "__DATE__", BUILTIN_DATE },
+  { "__TIME__", BUILTIN_TIME },
   { NULL,       0 },
   };
   define_t *def;
@@ -466,7 +472,7 @@ void __cdecl PC_AddBuiltinDefines(source_t *source)
   memset(def, 0, sizeof(define_t));
   def->name = (char *)def + sizeof(define_t);
   strcpy(def->name, builtin[i].name);
-  def->flags |= 1;
+  def->flags |= DEFINE_FIXED;
   def->builtin = builtin[i].value;
   PC_AddDefineToHash(def, source->definehash);
   }
@@ -476,33 +482,31 @@ void __cdecl PC_AddBuiltinDefines(source_t *source)
 // gladi386.so:   0004BA58..0004BCB2
 int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, char **a4)
 {
-  int v4;
   char *curtime;
   char *v7;
   __time32_t t;
   token_t token __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
 
   memcpy(&token, &src->cachedtoken, sizeof(token));
-  v4 = define->builtin - 1;
-  switch ( v4 )
+  switch ( define->builtin )
   {
-    case 0:
+    case BUILTIN_LINE:
       sprintf(token.string, "%d", src->cachedtoken.line);
       token.intvalue = src->cachedtoken.line;
       token.floatvalue = src->cachedtoken.line;
-      token.type = 3;
-      token.subtype = 4104;
+      token.type = TT_NUMBER;
+      token.subtype = TT_DECIMAL | TT_INTEGER;
       *a3 = (char *)&token;
       *a4 = (char *)&token;
       break;
-    case 1:
+    case BUILTIN_FILE:
       strcpy(token.string, src->scriptstack->filename);
-      token.type = 4;
+      token.type = TT_NAME;
       token.subtype = strlen(token.string);
       *a3 = (char *)&token;
       *a4 = (char *)&token;
       break;
-    case 2:
+    case BUILTIN_DATE:
       t = time(0);
       curtime = ctime(&t);
       strcpy(token.string, "\"");
@@ -510,24 +514,24 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
       strncat(&token.string[7], curtime + 20, 4u);
       strcat(token.string, "\"");
       free(curtime);
-      token.type = 4;
+      token.type = TT_NAME;
       token.subtype = strlen(token.string);
       *a3 = (char *)&token;
       *a4 = (char *)&token;
       break;
-    case 3:
+    case BUILTIN_TIME:
       t = time(0);
       v7 = ctime(&t);
       strcpy(token.string, "\"");
       strncat(token.string, v7 + 11, 8u);
       strcat(token.string, "\"");
       free(v7);
-      token.type = 4;
+      token.type = TT_NAME;
       token.subtype = strlen(token.string);
       *a3 = (char *)&token;
       *a4 = (char *)&token;
       break;
-    case 4:
+    case BUILTIN_STDC:
     default:
       *a3 = 0;
       *a4 = 0;
@@ -540,7 +544,7 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
 // gladi386.so:   0004BCB4..0004C23E
 int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, char **lasttoken)
 {
-  token_t *parms[128]; // [esp+14h] [ebp-630h] BYREF
+  token_t *parms[MAX_DEFINEPARMS]; // [esp+14h] [ebp-630h] BYREF
   token_t *dt, *pt, *t;
   token_t *t1, *t2, *first, *last, *nextpt;
   token_t token; // [esp+214h] [ebp-430h] BYREF
@@ -550,7 +554,7 @@ int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, 
     return PC_ExpandBuiltinDefine(src, define, firsttoken, lasttoken);
   if ( define->numparms )
   {
-    if ( !PC_ReadDefineParms(src, define, parms, 128) )
+    if ( !PC_ReadDefineParms(src, define, parms, MAX_DEFINEPARMS) )
       return 0;
   }
   first = NULL;
@@ -558,7 +562,7 @@ int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, 
   for ( dt = define->tokens; dt; dt = dt->next )
   {
     parmnum = -1;
-    if ( dt->type == 4 )
+    if ( dt->type == TT_NAME )
       parmnum = PC_FindDefineParm(define, dt->string);
     if ( parmnum >= 0 )
     {
@@ -714,7 +718,7 @@ int __cdecl PC_Directive_include(source_t *source)
     SourceError(source, "#include without file name");
     return 0;
   }
-  if ( token.type == 1 )
+  if ( token.type == TT_STRING )
   {
     StripDoubleQuotes(token.string);
     PC_ConvertPath(token.string);
@@ -726,7 +730,7 @@ int __cdecl PC_Directive_include(source_t *source)
       script = (char *)LoadScriptFile(path, 0, 0);
     }
   }
-  else if ( token.type == 5 && token.string[0] == 60 )
+  else if ( token.type == TT_PUNCTUATION && token.string[0] == 60 )
   {
     strcpy(path, source->includepath);
     while ( PC_ReadSourceToken(source, token.string) )
@@ -736,7 +740,7 @@ int __cdecl PC_Directive_include(source_t *source)
         PC_UnreadSourceToken(source, token.string);
         break;
       }
-      if ( token.type == 5 && token.string[0] == 62 )
+      if ( token.type == TT_PUNCTUATION && token.string[0] == 62 )
         break;
       strncat(path, token.string, MAX_PATH);
     }
@@ -836,7 +840,7 @@ int __cdecl PC_Directive_undef(source_t *source)
     SourceError(source, "undef without name");
     return 0;
   }
-  if ( token.type != 4 )
+  if ( token.type != TT_NAME )
   {
     PC_UnreadSourceToken(source, token.string);
     SourceError(source, "expected name, found %s", token.string);
@@ -847,7 +851,7 @@ int __cdecl PC_Directive_undef(source_t *source)
   {
     if ( !strcmp(define->name, token.string) )
     {
-      if ( (define->flags & 1) != 0 )
+      if ( (define->flags & DEFINE_FIXED) != 0 )
       {
         SourceWarning(source, "can't undef %s", token.string);
       }
@@ -884,7 +888,7 @@ int __cdecl PC_Directive_define(source_t *source)
     SourceError(source, "#define without name");
     return 0;
   }
-  if ( token.type != 4 )
+  if ( token.type != TT_NAME )
   {
     PC_UnreadSourceToken(source, &token);
     SourceError(source, "expected name after #define, found %s", token.string);
@@ -893,7 +897,7 @@ int __cdecl PC_Directive_define(source_t *source)
   define = PC_FindHashedDefine(source->definehash, token.string);
   if ( define )
   {
-    if ( define->flags & 1 )
+    if ( define->flags & DEFINE_FIXED )
     {
       SourceError(source, "can't redefine %s", token.string);
       return 0;
@@ -923,7 +927,7 @@ int __cdecl PC_Directive_define(source_t *source)
           SourceError(source, "expected define parameter");
           return 0;
         }
-        if ( token.type != 4 )
+        if ( token.type != TT_NAME )
         {
           SourceError(source, "invalid define parameter");
           return 0;
@@ -998,7 +1002,7 @@ define_t *__cdecl PC_DefineFromString(const char *string)
   memset(&src, 0, sizeof(src));
   strncpy(src.filename, "*extern", MAX_PATH);
   src.scriptstack = script;
-  src.definehash = (define_t **)GetClearedMemory(1024 * sizeof(define_t *));
+  src.definehash = (define_t **)GetClearedMemory(DEFINEHASHSIZE * sizeof(define_t *));
   res = PC_Directive_define(&src);
   /* Q3 advances through `src.tokens` itself, not through the `t` copy: the
    * original re-reads the field for the `->next` even though `t` holds the same
@@ -1009,7 +1013,7 @@ define_t *__cdecl PC_DefineFromString(const char *string)
     PC_FreeToken(t);
   }
   def = NULL;
-  for ( i = 0; i < 1024; i++ )
+  for ( i = 0; i < DEFINEHASHSIZE; i++ )
   {
     if ( src.definehash[i] )
     {
@@ -1169,14 +1173,14 @@ int __cdecl PC_Directive_if_def(source_t *src, int type)
     SourceError(src, "#ifdef without name");
     return 0;
   }
-  if ( token.type != 4 )
+  if ( token.type != TT_NAME )
   {
     PC_UnreadSourceToken(src, token.string);
     SourceError(src, "expected name after #ifdef, found %s", token.string);
     return 0;
   }
   def = PC_FindHashedDefine(src->definehash, token.string);
-  skip = (type == 8) == (def == NULL);
+  skip = (type == INDENT_IFDEF) == (def == NULL);
   PC_PushIndent(src, type, skip);
   return 1;
 }
@@ -1208,12 +1212,12 @@ int __cdecl PC_Directive_else(source_t *source)
     SourceError(source, "misplaced #else");
     return 0;
   }
-  if ( type == 2 )
+  if ( type == INDENT_ELSE )
   {
     SourceError(source, "#else after #else");
     return 0;
   }
-  PC_PushIndent(source, 2, skip == 0);
+  PC_PushIndent(source, INDENT_ELSE, skip == 0);
   return 1;
 }
 
@@ -1239,33 +1243,33 @@ int __cdecl PC_OperatorPriority(int op)
 {
   switch ( op )
   {
-    case 5: return 7;     /* P_LOGIC_AND */
-    case 6: return 6;     /* P_LOGIC_OR */
-    case 7: return 12;    /* P_LOGIC_GEQ */
-    case 8: return 12;    /* P_LOGIC_LEQ */
-    case 9: return 11;    /* P_LOGIC_EQ */
-    case 10: return 11;   /* P_LOGIC_UNEQ */
+    case P_LOGIC_AND: return 7;
+    case P_LOGIC_OR: return 6;
+    case P_LOGIC_GEQ: return 12;
+    case P_LOGIC_LEQ: return 12;
+    case P_LOGIC_EQ: return 11;
+    case P_LOGIC_UNEQ: return 11;
 
-    case 36: return 16;   /* P_LOGIC_NOT */
-    case 37: return 12;   /* P_LOGIC_GREATER */
-    case 38: return 12;   /* P_LOGIC_LESS */
+    case P_LOGIC_NOT: return 16;
+    case P_LOGIC_GREATER: return 12;
+    case P_LOGIC_LESS: return 12;
 
-    case 21: return 13;   /* P_RSHIFT */
-    case 22: return 13;   /* P_LSHIFT */
+    case P_RSHIFT: return 13;
+    case P_LSHIFT: return 13;
 
-    case 26: return 15;   /* P_MUL */
-    case 27: return 15;   /* P_DIV */
-    case 28: return 15;   /* P_MOD */
-    case 29: return 14;   /* P_ADD */
-    case 30: return 14;   /* P_SUB */
+    case P_MUL: return 15;
+    case P_DIV: return 15;
+    case P_MOD: return 15;
+    case P_ADD: return 14;
+    case P_SUB: return 14;
 
-    case 32: return 10;   /* P_BIN_AND */
-    case 33: return 8;    /* P_BIN_OR */
-    case 34: return 9;    /* P_BIN_XOR */
-    case 35: return 16;   /* P_BIN_NOT */
+    case P_BIN_AND: return 10;
+    case P_BIN_OR: return 8;
+    case P_BIN_XOR: return 9;
+    case P_BIN_NOT: return 16;
 
-    case 42: return 5;    /* P_COLON */
-    case 43: return 5;    /* P_QUESTIONMARK */
+    case P_COLON: return 5;
+    case P_QUESTIONMARK: return 5;
   }
   return 0;
 }
@@ -1294,7 +1298,7 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
   {
     switch ( t->type )
     {
-      case 4:   /* TT_NAME */
+      case TT_NAME:   
       {
         if ( lastwasvalue || negativevalue )
         {
@@ -1314,7 +1318,7 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
           brace = 1;
           t = t->next;
         }
-        if ( !t || t->type != 4 )
+        if ( !t || t->type != TT_NAME )
         {
           SourceError(source, "defined without name in #if/#elif");
           error = 1;
@@ -1352,7 +1356,7 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
         lastwasvalue = 1;
         break;
       }
-      case 3:   /* TT_NUMBER */
+      case TT_NUMBER:   
       {
         if ( lastwasvalue )
         {
@@ -1382,7 +1386,7 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
         negativevalue = 0;
         break;
       }
-      case 5:   /* TT_PUNCTUATION */
+      case TT_PUNCTUATION:   
       {
         if ( negativevalue )
         {
@@ -1390,12 +1394,12 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
           error = 1;
           break;
         }
-        if ( t->subtype == 44 )         /* P_PARENTHESESOPEN */
+        if ( t->subtype == P_PARENTHESESOPEN )         /* P_PARENTHESESOPEN */
         {
           parentheses++;
           break;
         }
-        else if ( t->subtype == 45 )    /* P_PARENTHESESCLOSE */
+        else if ( t->subtype == P_PARENTHESESCLOSE )    /* P_PARENTHESESCLOSE */
         {
           parentheses--;
           if ( parentheses < 0 )
@@ -1408,10 +1412,10 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
         /* check for invalid operators on floating point values */
         if ( !integer )
         {
-          if ( t->subtype == 35 || t->subtype == 28 ||
-               t->subtype == 21 || t->subtype == 22 ||
-               t->subtype == 32 || t->subtype == 33 ||
-               t->subtype == 34 )
+          if ( t->subtype == P_BIN_NOT || t->subtype == P_MOD ||
+               t->subtype == P_RSHIFT || t->subtype == P_LSHIFT ||
+               t->subtype == P_BIN_AND || t->subtype == P_BIN_OR ||
+               t->subtype == P_BIN_XOR )
           {
             SourceError(source, "illigal operator %s on floating point operands\n", t->string);
             error = 1;
@@ -1420,8 +1424,8 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
         }
         switch ( t->subtype )
         {
-          case 36:  /* P_LOGIC_NOT */
-          case 35:  /* P_BIN_NOT */
+          case P_LOGIC_NOT:  
+          case P_BIN_NOT:  
           {
             if ( lastwasvalue )
             {
@@ -1431,7 +1435,7 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
             }
             break;
           }
-          case 30:  /* P_SUB */
+          case P_SUB:  
           {
             if ( !lastwasvalue )
             {
@@ -1439,30 +1443,30 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
               break;
             }
           }
-          case 26:  /* P_MUL */
-          case 27:  /* P_DIV */
-          case 28:  /* P_MOD */
-          case 29:  /* P_ADD */
+          case P_MUL:  
+          case P_DIV:  
+          case P_MOD:  
+          case P_ADD:  
 
-          case 5:   /* P_LOGIC_AND */
-          case 6:   /* P_LOGIC_OR */
-          case 7:   /* P_LOGIC_GEQ */
-          case 8:   /* P_LOGIC_LEQ */
-          case 9:   /* P_LOGIC_EQ */
-          case 10:  /* P_LOGIC_UNEQ */
+          case P_LOGIC_AND:   
+          case P_LOGIC_OR:   
+          case P_LOGIC_GEQ:   
+          case P_LOGIC_LEQ:   
+          case P_LOGIC_EQ:   
+          case P_LOGIC_UNEQ:  
 
-          case 37:  /* P_LOGIC_GREATER */
-          case 38:  /* P_LOGIC_LESS */
+          case P_LOGIC_GREATER:  
+          case P_LOGIC_LESS:  
 
-          case 21:  /* P_RSHIFT */
-          case 22:  /* P_LSHIFT */
+          case P_RSHIFT:  
+          case P_LSHIFT:  
 
-          case 32:  /* P_BIN_AND */
-          case 33:  /* P_BIN_OR */
-          case 34:  /* P_BIN_XOR */
+          case P_BIN_AND:  
+          case P_BIN_OR:  
+          case P_BIN_XOR:  
 
-          case 42:  /* P_COLON */
-          case 43:  /* P_QUESTIONMARK */
+          case P_COLON:  
+          case P_QUESTIONMARK:  
           {
             if ( !lastwasvalue )
             {
@@ -1536,7 +1540,7 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
         if ( o->priority >= o->next->priority ) break;
       }
       /* if the arity of the operator isn't equal to 1 */
-      if ( o->op != 36 && o->op != 35 ) v = v->next;
+      if ( o->op != P_LOGIC_NOT && o->op != P_BIN_NOT ) v = v->next;
       /* if there's no value or no next value */
       if ( !v )
       {
@@ -1550,46 +1554,46 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
     v2 = v->next;
     switch ( o->op )
     {
-      case 36: v1->intvalue = !v1->intvalue;
+      case P_LOGIC_NOT: v1->intvalue = !v1->intvalue;
                v1->floatvalue = !v1->floatvalue; break;
-      case 35: v1->intvalue = ~v1->intvalue;
+      case P_BIN_NOT: v1->intvalue = ~v1->intvalue;
                break;
-      case 26: v1->intvalue *= v2->intvalue;
+      case P_MUL: v1->intvalue *= v2->intvalue;
                v1->floatvalue *= v2->floatvalue; break;
-      case 27: v1->intvalue /= v2->intvalue;
+      case P_DIV: v1->intvalue /= v2->intvalue;
                v1->floatvalue /= v2->floatvalue; break;
-      case 28: v1->intvalue %= v2->intvalue; break;
-      case 29: v1->intvalue += v2->intvalue;
+      case P_MOD: v1->intvalue %= v2->intvalue; break;
+      case P_ADD: v1->intvalue += v2->intvalue;
                v1->floatvalue += v2->floatvalue; break;
-      case 30: v1->intvalue -= v2->intvalue;
+      case P_SUB: v1->intvalue -= v2->intvalue;
                v1->floatvalue -= v2->floatvalue; break;
-      case 5:  v1->intvalue = v1->intvalue && v2->intvalue;
+      case P_LOGIC_AND:  v1->intvalue = v1->intvalue && v2->intvalue;
                v1->floatvalue = v1->floatvalue && v2->floatvalue; break;
-      case 6:  v1->intvalue = v1->intvalue || v2->intvalue;
+      case P_LOGIC_OR:  v1->intvalue = v1->intvalue || v2->intvalue;
                v1->floatvalue = v1->floatvalue || v2->floatvalue; break;
-      case 7:  v1->intvalue = v1->intvalue >= v2->intvalue;
+      case P_LOGIC_GEQ:  v1->intvalue = v1->intvalue >= v2->intvalue;
                v1->floatvalue = v1->floatvalue >= v2->floatvalue; break;
-      case 8:  v1->intvalue = v1->intvalue <= v2->intvalue;
+      case P_LOGIC_LEQ:  v1->intvalue = v1->intvalue <= v2->intvalue;
                v1->floatvalue = v1->floatvalue <= v2->floatvalue; break;
-      case 9:  v1->intvalue = v1->intvalue == v2->intvalue;
+      case P_LOGIC_EQ:  v1->intvalue = v1->intvalue == v2->intvalue;
                v1->floatvalue = v1->floatvalue == v2->floatvalue; break;
-      case 10: v1->intvalue = v1->intvalue != v2->intvalue;
+      case P_LOGIC_UNEQ: v1->intvalue = v1->intvalue != v2->intvalue;
                v1->floatvalue = v1->floatvalue != v2->floatvalue; break;
-      case 37: v1->intvalue = v1->intvalue > v2->intvalue;
+      case P_LOGIC_GREATER: v1->intvalue = v1->intvalue > v2->intvalue;
                v1->floatvalue = v1->floatvalue > v2->floatvalue; break;
-      case 38: v1->intvalue = v1->intvalue < v2->intvalue;
+      case P_LOGIC_LESS: v1->intvalue = v1->intvalue < v2->intvalue;
                v1->floatvalue = v1->floatvalue < v2->floatvalue; break;
-      case 21: v1->intvalue >>= v2->intvalue;
+      case P_RSHIFT: v1->intvalue >>= v2->intvalue;
                break;
-      case 22: v1->intvalue <<= v2->intvalue;
+      case P_LSHIFT: v1->intvalue <<= v2->intvalue;
                break;
-      case 32: v1->intvalue &= v2->intvalue;
+      case P_BIN_AND: v1->intvalue &= v2->intvalue;
                break;
-      case 33: v1->intvalue |= v2->intvalue;
+      case P_BIN_OR: v1->intvalue |= v2->intvalue;
                break;
-      case 34: v1->intvalue ^= v2->intvalue;
+      case P_BIN_XOR: v1->intvalue ^= v2->intvalue;
                break;
-      case 42:  /* P_COLON */
+      case P_COLON:  
       {
         if ( !gotquestmarkvalue )
         {
@@ -1608,7 +1612,7 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
         gotquestmarkvalue = 0;
         break;
       }
-      case 43:  /* P_QUESTIONMARK */
+      case P_QUESTIONMARK:  
       {
         if ( gotquestmarkvalue )
         {
@@ -1624,10 +1628,10 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
     }
     if ( error ) break;
     /* if not an operator with arity 1 */
-    if ( o->op != 36 && o->op != 35 )
+    if ( o->op != P_LOGIC_NOT && o->op != P_BIN_NOT )
     {
       /* remove the second value if not question mark operator */
-      if ( o->op != 43 ) v = v->next;
+      if ( o->op != P_QUESTIONMARK ) v = v->next;
       if ( v->prev ) v->prev->next = v->next;
       else firstvalue = v->next;
       if ( v->next ) v->next->prev = v->prev;
@@ -1680,7 +1684,7 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
   lasttoken = NULL;
   do
   {
-    if ( token.type == 4 )
+    if ( token.type == TT_NAME )
     {
       if ( defined )
       {
@@ -1711,7 +1715,7 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
         if ( !PC_ExpandDefineIntoSource(source, define) ) return 0;
       }
     }
-    else if ( token.type == 3 || token.type == 5 )
+    else if ( token.type == TT_NUMBER || token.type == TT_PUNCTUATION )
     {
       t = PC_CopyToken(&token);
       t->next = NULL;
@@ -1760,7 +1764,7 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
   lasttoken = NULL;
   do
   {
-    if ( token.type == 4 )
+    if ( token.type == TT_NAME )
     {
       if ( defined )
       {
@@ -1791,7 +1795,7 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
         if ( !PC_ExpandDefineIntoSource(source, define) ) return 0;
       }
     }
-    else if ( token.type == 3 || token.type == 5 )
+    else if ( token.type == TT_NUMBER || token.type == TT_PUNCTUATION )
     {
       if ( *token.string == '(' ) indent++;
       else if ( *token.string == ')' ) indent--;
@@ -1826,7 +1830,7 @@ int __cdecl PC_Directive_elif(source_t *source)
   int skip;
 
   PC_PopIndent(source, &type, &skip);
-  if ( !type || type == 2 )
+  if ( !type || type == INDENT_ELSE )
   {
     SourceError(source, "misplaced #elif");
     return 0;
@@ -1834,7 +1838,7 @@ int __cdecl PC_Directive_elif(source_t *source)
   if ( !PC_Evaluate(source, &value, 0, 1) )
     return 0;
   skip = value == 0;
-  PC_PushIndent(source, 4, skip);
+  PC_PushIndent(source, INDENT_ELIF, skip);
   return 1;
 }
 
@@ -1846,7 +1850,7 @@ int __cdecl PC_Directive_if(source_t *source)
 
   if ( !PC_Evaluate(source, &value, 0, 1) )
     return 0;
-  PC_PushIndent(source, 1, value == 0);
+  PC_PushIndent(source, INDENT_IF, value == 0);
   return 1;
 }
 
@@ -1897,8 +1901,8 @@ void __cdecl UnreadSignToken(source_t *source)
   token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   strcpy(token.string, "-");
-  token.type = 5;
-  token.subtype = 30;
+  token.type = TT_PUNCTUATION;
+  token.subtype = P_SUB;
   PC_UnreadSourceToken(source, &token);
 }
 
@@ -1920,8 +1924,8 @@ int __cdecl PC_Directive_eval(source_t *source)
   token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   sprintf(token.string, "%d", abs(value));
-  token.type = 3;
-  token.subtype = 12296;
+  token.type = TT_NUMBER;
+  token.subtype = TT_INTEGER|TT_LONG|TT_DECIMAL;
   PC_UnreadSourceToken(source, &token);
   if ( value < 0 )
     UnreadSignToken(source);
@@ -1944,8 +1948,8 @@ int __cdecl PC_Directive_evalfloat(source_t *source)
   token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   sprintf(token.string, "%1.2f", fabs(value));
-  token.type = 3;
-  token.subtype = 10248;
+  token.type = TT_NUMBER;
+  token.subtype = TT_FLOAT|TT_LONG|TT_DECIMAL;
   PC_UnreadSourceToken(source, &token);
   if ( value < 0.0 )
     UnreadSignToken(source);
@@ -2014,7 +2018,7 @@ int __cdecl PC_ReadDirective(source_t *source)
     SourceError(source, "found # at end of line");
     return 0;
   }
-  if ( token.type == 4 )
+  if ( token.type == TT_NAME )
   {
     /* Indexed scan, as Q3 writes it: the index is reused at the call site
      * (`directives[i].func`), so MSVC keeps both the strength-reduced name pointer and
@@ -2045,8 +2049,8 @@ int __cdecl PC_DollarDirective_evalint(source_t *source)
   token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   sprintf(token.string, "%d", abs(value));
-  token.type = 3;
-  token.subtype = 12296;
+  token.type = TT_NUMBER;
+  token.subtype = TT_INTEGER|TT_LONG|TT_DECIMAL;
   token.intvalue = value;
   token.floatvalue = (float)value;
   PC_UnreadSourceToken(source, token.string);
@@ -2071,8 +2075,8 @@ int __cdecl PC_DollarDirective_evalfloat(source_t *source)
   token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   sprintf(token.string, "%1.2f", fabs(value));
-  token.type = 3;
-  token.subtype = 10248;
+  token.type = TT_NUMBER;
+  token.subtype = TT_FLOAT|TT_LONG|TT_DECIMAL;
   token.intvalue = (__int64)value;
   token.floatvalue = value;
   PC_UnreadSourceToken(source, token.string);
@@ -2113,7 +2117,7 @@ int __cdecl PC_ReadDollarDirective(source_t *source)
     SourceError(source, "found $ at end of line");
     return 0;
   }
-  if ( token.type == 4 )
+  if ( token.type == TT_NAME )
   {
     for ( i = 0; dollardirectives[i].name; i++ )
     {
@@ -2138,13 +2142,13 @@ int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *pc_token)
   {
     if ( !PC_ReadSourceToken(source, (token_t *)pc_token) )
       return 0;
-    if ( ((token_t *)pc_token)->type == 5 && ((token_t *)pc_token)->string[0] == '#' )
+    if ( ((token_t *)pc_token)->type == TT_PUNCTUATION && ((token_t *)pc_token)->string[0] == '#' )
     {
       if ( !PC_ReadDirective(source) )
         return 0;
       continue;
     }
-    if ( ((token_t *)pc_token)->type == 5 && ((token_t *)pc_token)->string[0] == '$' )
+    if ( ((token_t *)pc_token)->type == TT_PUNCTUATION && ((token_t *)pc_token)->string[0] == '$' )
     {
       if ( !PC_ReadDollarDirective(source) )
         return 0;
@@ -2152,7 +2156,7 @@ int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *pc_token)
     }
     if ( source->skip )
       continue;
-    if ( ((token_t *)pc_token)->type == 4 )
+    if ( ((token_t *)pc_token)->type == TT_NAME )
     {
       v3 = PC_FindHashedDefine(source->definehash, (const char *)pc_token);
       if ( v3 )
@@ -2190,7 +2194,7 @@ int __cdecl PC_ExpectTokenString(source_t *source, const char *string)
 // gladi386.so:   00050344..000505D4
 int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t token)
 {
-  char str[1024]; // [esp+8h] [ebp-400h] BYREF
+  char str[MAX_TOKEN]; // [esp+8h] [ebp-400h] BYREF
   token_t *tok = (token_t *)token;
 
   if ( !PC_ReadTokenHandle(source, token) )
@@ -2200,50 +2204,50 @@ int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t
   }
   if ( tok->type != type )
   {
-    if ( type == 1 )
+    if ( type == TT_STRING )
       strcpy(str, "string");
-    if ( type == 2 )
+    if ( type == TT_LITERAL )
       strcpy(str, "literal");
-    if ( type == 3 )
+    if ( type == TT_NUMBER )
       strcpy(str, "number");
-    if ( type == 4 )
+    if ( type == TT_NAME )
       strcpy(str, "name");
-    if ( type == 5 )
+    if ( type == TT_PUNCTUATION )
       strcpy(str, "punctuation");
     SourceError(source, "expected a %s, found %s", str, token);
     return 0;
   }
-  if ( tok->type == 3 )
+  if ( tok->type == TT_NUMBER )
   {
     if ( (tok->subtype & subtype) != subtype )
     {
-      if ( (subtype & 8) != 0 )
+      if ( (subtype & TT_DECIMAL) != 0 )
         strcpy(str, "decimal");
-      if ( (subtype & 0x100) != 0 )
+      if ( (subtype & TT_HEX) != 0 )
         strcpy(str, "hex");
-      if ( (subtype & 0x200) != 0 )
+      if ( (subtype & TT_OCTAL) != 0 )
         strcpy(str, "octal");
-      if ( (subtype & 0x400) != 0 )
+      if ( (subtype & TT_BINARY) != 0 )
         strcpy(str, "binary");
-      if ( (subtype & 0x2000) != 0 )
+      if ( (subtype & TT_LONG) != 0 )
       {
         strcat(str, " long");
       }
-      if ( (subtype & 0x4000) != 0 )
+      if ( (subtype & TT_UNSIGNED) != 0 )
       {
         strcat(str, " unsigned");
       }
-      if ( (subtype & 0x800) != 0 )
+      if ( (subtype & TT_FLOAT) != 0 )
       {
         strcat(str, " float");
       }
-      if ( (subtype & 0x1000) != 0 )
+      if ( (subtype & TT_INTEGER) != 0 )
         strcat(str, " integer");
       SourceError(source, "expected %s, found %s", str, token);
       return 0;
     }
   }
-  else if ( tok->type == 5 )
+  else if ( tok->type == TT_PUNCTUATION )
   {
     if ( tok->subtype != subtype )
     {
@@ -2374,7 +2378,7 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
   src->defines      = NULL;
   src->indentstack  = NULL;
   src->skip         = 0;
-  src->definehash   = (define_t **)GetClearedMemory(1024 * sizeof(define_t *));
+  src->definehash   = (define_t **)GetClearedMemory(DEFINEHASHSIZE * sizeof(define_t *));
   PC_AddGlobalDefinesToSource(src);
   return src;
 }
@@ -2400,7 +2404,7 @@ source_t *__cdecl LoadSourceMemory(char *ptr, int length, char *name)
   src->defines      = NULL;
   src->indentstack  = NULL;
   src->skip         = 0;
-  src->definehash   = (define_t **)GetClearedMemory(1024 * sizeof(define_t *));
+  src->definehash   = (define_t **)GetClearedMemory(DEFINEHASHSIZE * sizeof(define_t *));
   PC_AddGlobalDefinesToSource(src);
   return src;
 }
@@ -2427,7 +2431,7 @@ void __cdecl FreeSource(source_t *source)
     source->tokens = tok->next;
     PC_FreeToken(tok);
   }
-  for ( k = 0; k < 1024; k++ )
+  for ( k = 0; k < DEFINEHASHSIZE; k++ )
   {
     while ( source->definehash[k] )
     {

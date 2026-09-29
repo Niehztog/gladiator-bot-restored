@@ -32,27 +32,27 @@
  * Deliberately NOT `static`: gladi386.so exports it as a `D` symbol
  * (0005bdb0 D weaponinfo_fields), which a file-static array can never be. */
 char *weaponinfo_fields[] = {
-    FE("name",            0x004, 0x004, 0, 0x00000000),
-    FE("level",           0x0A4, 0x002, 0, 0x00000000),
-    FE("model",           0x054, 0x004, 0, 0x00000000),
-    FE("weaponindex",     0x0A8, 0x002, 0, 0x00000000),
-    FE("flags",           0x0AC, 0x002, 0, 0x00000000),
-    FE("projectile",      0x0B0, 0x004, 0, 0x00000000),
-    FE("numprojectiles",  0x100, 0x002, 0, 0x00000000),
-    FE("hspread",         0x104, 0x003, 0, 0x00000000),
-    FE("vspread",         0x108, 0x003, 0, 0x00000000),
-    FE("speed",           0x10C, 0x003, 0, 0x00000000),
-    FE("acceleration",    0x110, 0x003, 0, 0x00000000),
-    FE("recoil",          0x114, 0x103, 3, 0x00000000),  /* vec3 */
-    FE("offset",          0x120, 0x103, 3, 0x00000000),  /* vec3 */
-    FE("angleoffset",     0x12C, 0x103, 3, 0x00000000),  /* vec3 */
-    FE("extrazvelocity",  0x138, 0x003, 0, 0x00000000),
-    FE("ammoamount",      0x13C, 0x002, 0, 0x00000000),
-    FE("ammoindex",       0x140, 0x002, 0, 0x00000000),
-    FE("activate",        0x144, 0x003, 0, 0x00000000),
-    FE("reload",          0x148, 0x003, 0, 0x00000000),
-    FE("spinup",          0x14C, 0x003, 0, 0x00000000),
-    FE("spindown",        0x150, 0x003, 0, 0x00000000),
+    FE("name",            0x004, FT_STRING, 0, 0x00000000),
+    FE("level",           0x0A4, FT_INT, 0, 0x00000000),
+    FE("model",           0x054, FT_STRING, 0, 0x00000000),
+    FE("weaponindex",     0x0A8, FT_INT, 0, 0x00000000),
+    FE("flags",           0x0AC, FT_INT, 0, 0x00000000),
+    FE("projectile",      0x0B0, FT_STRING, 0, 0x00000000),
+    FE("numprojectiles",  0x100, FT_INT, 0, 0x00000000),
+    FE("hspread",         0x104, FT_FLOAT, 0, 0x00000000),
+    FE("vspread",         0x108, FT_FLOAT, 0, 0x00000000),
+    FE("speed",           0x10C, FT_FLOAT, 0, 0x00000000),
+    FE("acceleration",    0x110, FT_FLOAT, 0, 0x00000000),
+    FE("recoil",          0x114, FT_FLOAT|FT_ARRAY, 3, 0x00000000),  /* vec3 */
+    FE("offset",          0x120, FT_FLOAT|FT_ARRAY, 3, 0x00000000),  /* vec3 */
+    FE("angleoffset",     0x12C, FT_FLOAT|FT_ARRAY, 3, 0x00000000),  /* vec3 */
+    FE("extrazvelocity",  0x138, FT_FLOAT, 0, 0x00000000),
+    FE("ammoamount",      0x13C, FT_INT, 0, 0x00000000),
+    FE("ammoindex",       0x140, FT_INT, 0, 0x00000000),
+    FE("activate",        0x144, FT_FLOAT, 0, 0x00000000),
+    FE("reload",          0x148, FT_FLOAT, 0, 0x00000000),
+    FE("spinup",          0x14C, FT_FLOAT, 0, 0x00000000),
+    FE("spindown",        0x150, FT_FLOAT, 0, 0x00000000),
     FE_END
 };
 
@@ -60,20 +60,20 @@ char *weaponinfo_fields[] = {
  * Deliberately NOT `static`: gladi386.so exports it as a `D` symbol
  * (0005c018 D projectileinfo_fields), which a file-static array can never be. */
 char *projectileinfo_fields[] = {
-    FE("name",        0x000, 0x004, 0, 0x00000000),
-    FE("model",       0x054, 0x004, 0, 0x00000000),
-    FE("flags",       0x0A0, 0x002, 0, 0x00000000),
-    FE("gravity",     0x0A4, 0x003, 0, 0x00000000),
-    FE("damage",      0x0A8, 0x002, 0, 0x00000000),
-    FE("radius",      0x0AC, 0x003, 0, 0x00000000),
-    FE("visdamage",   0x0B0, 0x002, 0, 0x00000000),
-    FE("damagetype",  0x0B4, 0x002, 0, 0x00000000),
-    FE("healthinc",   0x0B8, 0x002, 0, 0x00000000),
-    FE("push",        0x0BC, 0x003, 0, 0x00000000),
-    FE("detonation",  0x0C0, 0x003, 0, 0x00000000),
-    FE("bounce",      0x0C4, 0x003, 0, 0x00000000),
-    FE("bouncefric",  0x0C8, 0x003, 0, 0x00000000),
-    FE("bouncestop",  0x0CC, 0x003, 0, 0x00000000),
+    FE("name",        0x000, FT_STRING, 0, 0x00000000),
+    FE("model",       0x054, FT_STRING, 0, 0x00000000),
+    FE("flags",       0x0A0, FT_INT, 0, 0x00000000),
+    FE("gravity",     0x0A4, FT_FLOAT, 0, 0x00000000),
+    FE("damage",      0x0A8, FT_INT, 0, 0x00000000),
+    FE("radius",      0x0AC, FT_FLOAT, 0, 0x00000000),
+    FE("visdamage",   0x0B0, FT_INT, 0, 0x00000000),
+    FE("damagetype",  0x0B4, FT_INT, 0, 0x00000000),
+    FE("healthinc",   0x0B8, FT_INT, 0, 0x00000000),
+    FE("push",        0x0BC, FT_FLOAT, 0, 0x00000000),
+    FE("detonation",  0x0C0, FT_FLOAT, 0, 0x00000000),
+    FE("bounce",      0x0C4, FT_FLOAT, 0, 0x00000000),
+    FE("bouncefric",  0x0C8, FT_FLOAT, 0, 0x00000000),
+    FE("bouncestop",  0x0CC, FT_FLOAT, 0, 0x00000000),
     FE_END
 };
 /* Both descriptors after both field tables, as in Q3's be_ai_weap.c: that is the

@@ -36,6 +36,11 @@
 #include "l_libvar.h"
 #include "l_memory.h"
 #include "l_utils.h"
+//
+#include "chars.h"				//characteristics
+#include "inv.h"				//indexes into the inventory
+#include "syn.h"				//synonyms
+#include "match.h"				//string matching types and vars
 
 int numnodeswitches;     // 0x100644A0 (game ai_dmnet.c; was dword_100644A0)
 char nodeswitch[7344];   // 0x10064A80 nodeswitch[MAX_NODESWITCHES+1=51][144] (ai_dmnet.c; was byte_10064A80)
@@ -154,12 +159,13 @@ int BotGetFormationGoal(bot_state_t *bs)
   VectorCopy(bs->formationgoal_origin, start);
   start[2] += 1;
   VectorScale(dir, 400.0f, velocity);
-  /* 0.1 s of motion; stopevent 0x7C = HITGROUND|HITWATER|HITSLIME|HITLAVA */
+  /* 0.1 s of motion */
   move = AAS_ClientMovementPrediction(-1, start,
                                       PRESENCE_NORMAL, 1, vec3_origin, velocity,
-                                      1, 2, 0.1f, 124, 0);
+                                      1, 2, 0.1f,
+                                      SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE|SE_GAP, 0);
   VectorCopy(move.endpos, endpos);
-  if ( (move.stopevent & 0x38) != 0 )
+  if ( (move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE)) != 0 )
   {
     VectorCopy(start, goalorigin);
   }
@@ -211,7 +217,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
     if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
     {
       BotInitialChat(&bs->chatstate, "help_start", EasyClientName(bs->teammate - 1, netname), NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->teammessage_time = 0;
     }
     if ( bs->teamgoal_time < AAS_Time() )
@@ -251,13 +257,13 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
     if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
     {
       BotInitialChat(&bs->chatstate, "accompany_start", EasyClientName(bs->teammate - 1, netname), NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->teammessage_time = 0;
     }
     if ( bs->teamgoal_time < AAS_Time() )
     {
       BotInitialChat(&bs->chatstate, "accompany_stop", EasyClientName(bs->teammate - 1, netname), NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->ltgtype = 0;
     }
     entinfo = AAS_EntityInfo(bs->teammate);
@@ -269,7 +275,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       {
         if ( bs->attackcrouch_time < AAS_Time() - 5 )
         {
-          croucher = Characteristic_BFloat(BotCharacter(bs), 24, 0, 1);
+          croucher = Characteristic_BFloat(BotCharacter(bs), CHARACTERISTIC_CROUCHER, 0, 1);
           if ( random() < bs->thinktime * croucher )
             bs->attackcrouch_time = AAS_Time() + 5 + croucher * 15;
         }
@@ -281,7 +287,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           {
             sub_100371B0(bs->client, 1);
             BotInitialChat(&bs->chatstate, "accompany_arrive", EasyClientName(bs->teammate - 1, netname), NULL);
-            BotEnterChat(&bs->chatstate, bs->client, 1);
+            BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
             bs->arrive_time = AAS_Time();
           }
           else if ( bs->attackcrouch_time > AAS_Time() )
@@ -331,7 +337,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
     if ( bs->teammatevisible_time < AAS_Time() - 60 )
     {
       BotInitialChat(&bs->chatstate, "accompany_cannotfind", EasyClientName(bs->teammate - 1, netname), NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->ltgtype = 0;
     }
   }
@@ -340,14 +346,14 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
     if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
     {
       BotInitialChat(&bs->chatstate, "defend_start", BotGoalName(bs->teamgoal.number), NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->teammessage_time = 0;
     }
     goal = &bs->teamgoal;
     if ( bs->teamgoal_time < AAS_Time() )
     {
       BotInitialChat(&bs->chatstate, "defend_stop", BotGoalName(bs->teamgoal.number), NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->ltgtype = 0;
     }
     VectorSubtract(goal->origin, bs->origin, dir);
@@ -362,14 +368,14 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
     if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
     {
       BotInitialChat(&bs->chatstate, "camp_start", EasyClientName(bs->teammate - 1, netname), NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->teammessage_time = 0;
     }
     goal = &bs->teamgoal;
     if ( bs->teamgoal_time < AAS_Time() )
     {
       BotInitialChat(&bs->chatstate, "camp_stop", NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->ltgtype = 0;
     }
     VectorSubtract(goal->origin, bs->origin, dir);
@@ -378,7 +384,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       if ( !bs->arrive_time )
       {
         BotInitialChat(&bs->chatstate, "camp_arrive", EasyClientName(bs->teammate - 1, netname), NULL);
-        BotEnterChat(&bs->chatstate, bs->client, 1);
+        BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
         bs->arrive_time = AAS_Time();
       }
       if ( random() < bs->thinktime * 0.8 )
@@ -390,7 +396,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       }
       if ( bs->attackcrouch_time < AAS_Time() - 5 )
       {
-        croucher = Characteristic_BFloat(BotCharacter(bs), 24, 0, 1);
+        croucher = Characteristic_BFloat(BotCharacter(bs), CHARACTERISTIC_CROUCHER, 0, 1);
         if ( random() < bs->thinktime * croucher )
           bs->attackcrouch_time = AAS_Time() + 5 + croucher * 15;
       }
@@ -401,7 +407,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       if ( AAS_PointContents(bs->eye) & (CONTENTS_WATER|CONTENTS_SLIME|CONTENTS_LAVA) )
       {
         BotInitialChat(&bs->chatstate, "camp_stop", NULL);
-        BotEnterChat(&bs->chatstate, bs->client, 1);
+        BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
         bs->ltgtype = 0;
       }
       BotResetAvoidReach((_DWORD *)&bs->ms);
@@ -420,7 +426,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           strcat(buf, " to ");
       }
       BotInitialChat(&bs->chatstate, "patrol_start", buf, NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->teammessage_time = 0;
     }
     if ( !BotCurPatrolPoint(bs) )
@@ -458,7 +464,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
     if ( bs->teamgoal_time < AAS_Time() )
     {
       BotInitialChat(&bs->chatstate, "patrol_stop", NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->ltgtype = 0;
     }
     if ( !BotCurPatrolPoint(bs) )
@@ -473,7 +479,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
     if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
     {
       BotInitialChat(&bs->chatstate, "captureflag_start", NULL);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_TEAM);
       bs->teammessage_time = 0;
     }
     switch ( BotCTFTeam(bs) )
@@ -518,7 +524,7 @@ bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
     else if ( BotTouchingGoal(bs->origin, (float *)goal) )
     {
       if ( techs->value )
-        sub_100262C0((_DWORD *)bs, goal);
+        sub_100262C0(bs, goal);
       bs->ltg_time = 0;
     }
     else if ( BotItemGoalInVisButNotVisible(bs->entitynum, bs->eye, bs->viewangles, goal) )
@@ -550,7 +556,7 @@ void __cdecl AIEnter_Intermission(bot_state_t *bs)
   BotRecordNodeSwitch(bs, "intermission", "");
   BotResetState(bs);
   if ( BotChat_EndLevel(bs) )
-    BotEnterChat(&bs->chatstate, bs->client, 0);
+    BotEnterChat(&bs->chatstate, bs->client, CHAT_ALL);
   BotAINode(bs) = AINode_Intermission;
 }
 
@@ -628,7 +634,7 @@ int __cdecl AINode_Stand(bot_state_t *bs)
     }
     else
     {
-      BotEnterChat(&bs->chatstate, bs->client, 0);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_ALL);
       AIEnter_Seek_LTG(bs);
       return 0;
     }
@@ -679,7 +685,7 @@ int __cdecl AINode_Respawn(bot_state_t *bs)
     EA_Respawn(v2);
     if ( bs->enemy )
     {
-      BotEnterChat(&bs->chatstate, bs->client, 0);
+      BotEnterChat(&bs->chatstate, bs->client, CHAT_ALL);
       bs->enemy = 0;
     }
   }
@@ -854,7 +860,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     if ( BotTouchingGoal(bs->origin, (float *)v3) )
     {
       if ( techs->value != 0.0f )
-        sub_100262C0((_DWORD *)bs, goal);
+        sub_100262C0(bs, goal);
       bs->nbg_time = 0.0f;
     }
     else if ( BotItemGoalInVisButNotVisible(bs->entitynum, bs->eye, bs->viewangles, (bot_goal_t *)goal) )
@@ -1154,7 +1160,7 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     return 0;
   }
   entinfo = AAS_EntityInfo(bs->enemy);
-  if ( sub_10021710((int *)&entinfo) )
+  if ( EntityIsDead(&entinfo) )
   {
     /* Q3's shape: `if (BotChat_Kill(bs)) {stand} else {seek} return qfalse;` with ONE
      * shared return.  The original hoists the `bs` push above the branch to serve both
@@ -1433,7 +1439,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
     return 0;
   }
   entinfo = AAS_EntityInfo(bs->enemy);
-  if ( sub_10021710((int *)&entinfo) )
+  if ( EntityIsDead(&entinfo) )
   {
     AIEnter_Seek_LTG(bs);
     return 0;
@@ -1495,8 +1501,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
         }
         else if ( (moveresult.flags & MOVERESULT_MOVEMENTVIEWSET) == 0 )
         {
-          /* Characteristic 4 is aggression: > 0.3 attack, <= 0.3 dodge. */
-          attack_skill = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
+          attack_skill = (float)Characteristic_BFloat(BotCharacter(bs), CHARACTERISTIC_ATTACK_SKILL, 0.0, 1.0);
           if ( attack_skill > 0.3 )
           {
             BotAimAtEnemy(bs);
@@ -1580,7 +1585,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     return 0;
   }
   entinfo = AAS_EntityInfo(bs->enemy);
-  if ( sub_10021710((int *)&entinfo) )
+  if ( EntityIsDead(&entinfo) )
   {
     AIEnter_Seek_NBG(bs);
     return 0;
@@ -1604,7 +1609,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     if ( BotTouchingGoal(bs->origin, (float *)topgoal) )
     {
       if ( techs->value != 0.0f )
-        sub_100262C0((_DWORD *)bs, topgoal);
+        sub_100262C0(bs, topgoal);
       bs->nbg_time = 0.0f;
     }
   }

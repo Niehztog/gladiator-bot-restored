@@ -666,8 +666,8 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 
 // gladiator.dll: 1001C0B0..1001C17E
 // gladi386.so:   0002A24C..0002A37E
-// Scan an area's face list for the first face whose faceflags byte (offset +4) has
-// bit 0x04 set and that survives a predicate call into AAS_InsideFace with a +Z or
+// Scan an area's face list for the first face whose faceflags (offset +4) has
+// FACE_GROUND set and that survives a predicate call into AAS_InsideFace with a +Z or
 // -Z unit vector (chosen by the sign of the face plane's z-component) and a 0.01f
 // epsilon.  Returns the matching face pointer or NULL.  aasworld globals: areas
 // (stride 48 — numfaces at +4, firstface at +8), faceindex, faces pool (stride 24 —
@@ -690,7 +690,7 @@ void *__cdecl AAS_AreaGroundFace(int areanum, void *point)
   {
     facenum = aasworld.faceindex[area->firstface + i];
     face = &aasworld.faces[abs(facenum)];
-    if ( !(face->faceflags & 4) )
+    if ( !(face->faceflags & FACE_GROUND) )
       continue;
     plane_z = aasworld.planes[face->planenum].normal[2];
     if ( plane_z < 0.0f )

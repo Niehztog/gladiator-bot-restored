@@ -43,6 +43,8 @@
 #define MOVERESULT_SWIMVIEW				2		//bot uses view for swimming
 #define MOVERESULT_WAITING				4		//bot is waiting for something
 #define MOVERESULT_MOVEMENTVIEWSET		8		//bot has set the view in movement code
+// restult types
+#define RESULTTYPE_ELEVATORUP			1		//elevator is up
 
 /* Declarations for what this TU defines — last, so the types above are in scope. */
 bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *goal, int travelflags); /* 0x100343A0: build bot_moveresult_t for current goal */

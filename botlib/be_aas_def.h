@@ -13,9 +13,11 @@
 
 /* Q3's travel flags and TFL_DEFAULT, verbatim from its be_aas.h except for Gladiator's
  * values.  1..14 are Q3's: AAS_InitTravelFlagFromType gives each travel type its bit.
- * The four medium flags are Gladiator's own, read out of AAS_GetAreaContentsTravelFlags:
- * water 0x10000, lava 0x20000, slime 0x40000, otherwise air 0x8000.  Q3 moved them up
- * past its double, ramp and strafe jumps and jump pads, and put slime before lava.
+ * The four medium flags are Gladiator's own values, read out of
+ * AAS_GetAreaContentsTravelFlags: water 0x10000, slime 0x20000, lava 0x40000, otherwise
+ * air 0x8000.  The function tests the area contents in Q3's order, water, slime, lava,
+ * and the .aas files put lava at 2 and slime at 4 as Q3 does, which fixes the pair.  Q3
+ * moved them up past its double, ramp and strafe jumps and jump pads.
  * TFL_DEFAULT is the set every AI node starts from, 0x18FBE; Q3's adds the jump pad and
  * func_bob flags, which Gladiator has no travel for.  It is unparenthesised, as in Q3:
  * here it is only ever assigned or ORed. */
@@ -36,8 +38,8 @@
 #define TFL_GRAPPLEHOOK			0x00004000	//grappling hook
 #define TFL_AIR					0x00008000	//travel through air
 #define TFL_WATER				0x00010000	//travel through water
-#define TFL_LAVA				0x00020000	//travel through lava
-#define TFL_SLIME				0x00040000	//travel through slime
+#define TFL_SLIME				0x00020000	//travel through slime
+#define TFL_LAVA				0x00040000	//travel through lava
 
 //default travel flags
 #define TFL_DEFAULT	TFL_WALK|TFL_CROUCH|TFL_BARRIERJUMP|\
@@ -199,6 +201,19 @@ typedef struct aas_tracestack_s {
     int   planenum;     /* last plane used as splitter               */
     int   nodenum;      /* node found after splitting with planenum  */
 } aas_tracestack_t;
+
+/* Q3's stop events, verbatim up to SE_GAP, the last one Gladiator's movement
+ * prediction checks.  AAS_ClientMovementPrediction reports water as
+ * SE_ENTERSLIME; see there. */
+// client movement prediction stop events, stop as soon as:
+#define SE_NONE					0
+#define SE_HITGROUND			1		// the ground is hit
+#define SE_LEAVEGROUND			2		// there's no ground
+#define SE_ENTERWATER			4		// water is entered
+#define SE_ENTERSLIME			8		// slime is entered
+#define SE_ENTERLAVA			16		// lava is entered
+#define SE_HITGROUNDDAMAGE		32		// the ground is hit with damage
+#define SE_GAP					64		// there's a gap
 
 /* Trace result returned by AAS_TraceClientBBox.  9 dwords (36 bytes). */
 typedef struct aas_trace_s {

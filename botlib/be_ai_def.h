@@ -61,6 +61,20 @@ typedef struct itemconfig_s {
 
 /* weaponinfo_t — descriptor weaponinfo_struct.  Same field names as Q3, larger
  * offsets.  The leading dword before `name` is Q3's `valid` flag. */
+/* The weapon and projectile flag and damage-type values.  Gladiator's weapons.c
+ * (pak7.pak) defines this block verbatim, as Q3's weapons.c repeats be_ai_weap.h's;
+ * DAMAGETYPE_IGNOREARMOR is Gladiator's own. */
+//projectile flags
+#define PFL_WINDOWDAMAGE			1		//projectile damages through window
+#define PFL_RETURN					2		//set when projectile returns to owner
+//weapon flags
+#define WFL_FIRERELEASED			1		//set when projectile is fired with key-up event
+//damage types
+#define DAMAGETYPE_IMPACT			1		//damage on impact
+#define DAMAGETYPE_RADIAL			2		//radial damage
+#define DAMAGETYPE_VISIBLE			4		//damage to all entities visible to the projectile
+#define DAMAGETYPE_IGNOREARMOR	8		//projectile goes right through armor
+
 typedef struct projectileinfo_s projectileinfo_t;  /* fwd decl for proj field */
 typedef struct weaponinfo_s {
     int                number;          /* +0x000 — index in weaponconfig array (set by LoadWeaponConfig) */
@@ -144,10 +158,12 @@ typedef struct weight_s {
 
 /* weightconfig_t — 1028 bytes, inline weight array.  No filename field
  * (Q3 has one). */
-#define MAX_FUZZY_WEIGHTS 128
+/* Q3 be_ai_weight.h's two defines, verbatim. */
+#define WT_BALANCE			1
+#define MAX_WEIGHTS			128
 typedef struct weightconfig_s {
     int       numweights;                       /* +0  weight count           */
-    weight_t  weights[MAX_FUZZY_WEIGHTS];       /* +4  inline weight array    */
+    weight_t  weights[MAX_WEIGHTS];             /* +4  inline weight array    */
 } weightconfig_t;                               /* sizeof = 4 + 128*8 = 1028  */
 
 /* Synonym structs (be_ai_chat.c equivalents, used by the syn.c loader
@@ -181,9 +197,14 @@ typedef struct bot_randomlist_s {
     struct bot_randomlist_s    *next;               /* +12(32) / +24(64) */
 } bot_randomlist_t;                                 /* sizeof = 16 / 32 */
 
-/* bot_goal_t — 56 bytes, as Q3 be_ai_goal.h.  The trailing flags/iteminfo
- * fields are part of the layout (goal memcpys move 56 bytes) but nothing
- * writes them: BotGetLevelItemGoal fills the leading 48. */
+/* Q3 be_ai_goal.h's goal flags, as far as Gladiator sets them: the item choosers
+ * mark an item goal and the random roam goal.  GFL_DROPPED came later. */
+#define GFL_NONE				0
+#define GFL_ITEM				1
+#define GFL_ROAM				2
+
+/* bot_goal_t — 56 bytes, as Q3 be_ai_goal.h.  BotGetLevelItemGoal fills the
+ * leading 48; the item choosers also set flags and iteminfo, as in Q3. */
 typedef struct bot_goal_s {
     vec3_t                    origin;        /* +0   goal world position    */
     int                       areanum;       /* +12  AAS area number        */
@@ -191,8 +212,8 @@ typedef struct bot_goal_s {
     vec3_t                    maxs;          /* +28  bounding-box maxs      */
     int                       entitynum;     /* +40  entity number (-1 none)*/
     int                       number;        /* +44  iteminfo number        */
-    int                       flags;         /* +48  Q3 field; unused in Gladiator */
-    int                       iteminfo;      /* +52  Q3 field; unused in Gladiator */
+    int                       flags;         /* +48  GFL_ITEM or GFL_ROAM   */
+    int                       iteminfo;      /* +52  the level item's iteminfo */
 } bot_goal_t;                                /* sizeof = 56 */
 
 /* levelitem_t — fixed-size pool allocated by InitLevelItemHeap
@@ -302,9 +323,7 @@ typedef struct bsp_entity_s {
  * `weapon` field Q3 later inserted at +0x18 for grapple-as-movement-weapon,
  * so movedir sits at +0x18 and the struct is 48 bytes, not Q3's 52.
  *
- * flags: 1=uses view for movement, 2=uses view for swimming,
- *        4=waiting for something, 8=view set by movement code.
- * type:  1=elevator up / wait-for-mover.
+ * flags: the MOVERESULT_* bits, type: RESULTTYPE_ELEVATORUP (be_ai_move.h).
  * ------------------------------------------------------------------------- */
 typedef struct bot_moveresult_s {
     int    failure;             /* +0x00 movement failed all together        */
@@ -320,6 +339,15 @@ typedef struct bot_moveresult_s {
 /* ---- from chat_state.h ---- */
 #define MAX_MESSAGE_SIZE       0x96   /* 150 */
 #define MAX_MATCHVARIABLES     10
+
+/* Q3 be_ai_chat.h's gender and chat-destination values, verbatim.  CHAT_TELL is
+ * left out: Gladiator's BotEnterChat sends to the team or to everyone. */
+#define CHAT_GENDERLESS			0
+#define CHAT_GENDERFEMALE		1
+#define CHAT_GENDERMALE			2
+
+#define CHAT_ALL					0
+#define CHAT_TEAM					1
 
 /* Match piece types (bot_matchpiece_t.type) */
 #define MT_STRING              2
@@ -403,8 +431,7 @@ typedef struct bot_chatmessage_s {
 } bot_chatmessage_t;                            /* sizeof = 12 / 24 */
 
 /* bot_replychatkey_t — one trigger keyword in a reply-chat entry.
- * `flags` is a bitfield: 1=AND, 2=OR, 4=NAME, 8=STRING, 0x10=MATCH,
- * 0x20=FEMALE, 0x40=MALE, 0x80=IT. */
+ * `flags` holds be_ai_chat.c's RCKFL_* bits. */
 typedef struct bot_replychatkey_s {
     int   flags;                                /* +0 */
     char *string;                               /* +4(32)/+8(64) literal keyword (STRING flag) */
@@ -508,48 +535,19 @@ typedef struct bot_waypoint_s {
     struct bot_waypoint_s  *prev;
 } bot_waypoint_t;
 
-/* Named slots of bot_state_t.inventory[] -- the working inventory copy at
- * +1728.  The low indices are ordinary Q2 item slots copied from
- * snapshot.inventory; from 200 up, BotUpdateInventory / BotUpdateBattleInventory
- * overlay DERIVED values onto indices the AI never reads as items.
- *
- * This is Q3 botlib's own arrangement -- code/game/inv.h, which names the item
- * slots and then adds `ENEMY_HORIZONTAL_DIST 200` / `ENEMY_HEIGHT 201` beyond
- * them -- and the numbering is not a guess: Gladiator puts those same two
- * quantities at exactly 200 and 201.  Q3 kept the slot numbers when the code
- * moved to the game module.
- *
- * Index = (binary offset - 1728) / 4. */
-#define INVENTORY_HEALTH                41   /* +1892  ps.stats[STAT_HEALTH] snapshot */
+/* bot_state_t.inventory[] is indexed by Gladiator's own inv.h, the header the
+ * release ships with its bot scripts in pak7.pak: the item slots, then from 200
+ * up the ENEMY_*, USING_* and enemy-weapon slots the AI derives each frame.  Q3
+ * kept that arrangement in code/game/inv.h.  The AI files include it, as Q3's do. */
 
-#define ENEMY_HORIZONTAL_DIST          200   /* +2528 */
-#define ENEMY_HEIGHT                   201   /* +2532 */
-
-#define QUAD_SECONDS                   204   /* +2544  clamped >= 0 */
-#define INVULNERABILITY_SECONDS        205   /* +2548 */
-#define REBREATHER_SECONDS             207   /* +2556 */
-#define ENVIROSUIT_SECONDS             208   /* +2560 */
-#define POWER_SCREEN_CELLS             210   /* +2568  active power-armour cells, Power Screen */
-#define POWER_SHIELD_CELLS             211   /* +2572  active power-armour cells, Power Shield */
-
-/* +2648..+2692: one-hot enemy current-weapon flags, from the high byte of the
- * entity skinnum (Q2 WEAP_* numbers). */
-#define ENEMY_WEAPON_BLASTER           230
-#define ENEMY_WEAPON_SHOTGUN           231
-#define ENEMY_WEAPON_SUPERSHOTGUN      232
-#define ENEMY_WEAPON_MACHINEGUN        233
-#define ENEMY_WEAPON_CHAINGUN          234
-#define ENEMY_WEAPON_GRENADELAUNCHER   235
-#define ENEMY_WEAPON_ROCKETLAUNCHER    236
-#define ENEMY_WEAPON_HYPERBLASTER      237
-#define ENEMY_WEAPON_RAILGUN           238
-#define ENEMY_WEAPON_BFG               239
-#define ENEMY_WEAPON_GRENADES          240
-#define ENEMY_WEAPON_PHALANX           241   /* WEAP_PHALANX / WEAP_12 */
-
-#define ENEMY_QUAD                     245   /* +2708  enemy effects & EF_QUAD */
-#define ENEMY_INVULNERABILITY          246   /* +2712  enemy effects & EF_PENT */
-#define ENEMY_POWERSCREEN              247   /* +2716  enemy effects & EF_POWERSCREEN */
+/* Q3 ai_main.h's bot flags, verbatim, for the four bits Gladiator uses: the strafe
+ * and obstacle-avoidance directions, the fire-released toggle and the attack-jump
+ * latch.  Q3 later moved the latter's throttle into attackjump_time. */
+//bot flags
+#define BFL_STRAFERIGHT				1	//strafe to the right
+#define BFL_ATTACKED				2	//bot has attacked last ai frame
+#define BFL_ATTACKJUMPED			4	//bot jumped during attack last frame
+#define BFL_AVOIDRIGHT				16	//avoid obstacles by going to the right
 
 typedef struct bot_state_s {
     /* gcc 2.7.2.3 -- the compiler that built the 1999 .so -- has no anonymous
@@ -578,10 +576,8 @@ typedef struct bot_state_s {
                                    * snapshot.inventory, with the derived
                                    * slots (>= 200) overlaid onto indices
                                    * the AI never reads as items.  Names
-                                   * in the INVENTORY_/ENEMY_ block above. */
-    int    flags;               /* +2752 bit 0x02 toggled in the BotEntityVisible area, bit 0x10
-                                   * XOR-toggled on the BotAIBlocked direction flip.  Byte- and
-                                   * dword-accessed. */
+                                   * in inv.h. */
+    int    flags;               /* +2752 the BFL_* bits above */
     int    _i2756;                /* +2756 vestigial: no readers and no writers in the original */
     int    respawn_wait;          /* +2760 AIEnter_Respawn sets 0; AINode_Respawn sets 1 after EA_Respawn */
     int    lasthealth;            /* +2764 previous-frame health; vs inventory_health in BotFindEnemy

@@ -200,9 +200,9 @@ void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
         debuglinevisible[line] = 1;
       }
     }
-    botimport.DebugLineShow(lines[0], bboxcorners[i], bboxcorners[(i + 1) & 3], 0xF2F2F0F0);
-    botimport.DebugLineShow(lines[1], bboxcorners[4 + i], bboxcorners[4 + ((i + 1) & 3)], 0xF2F2F0F0);
-    botimport.DebugLineShow(lines[2], bboxcorners[i], bboxcorners[4 + i], 0xF2F2F0F0);
+    botimport.DebugLineShow(lines[0], bboxcorners[i], bboxcorners[(i + 1) & 3], LINECOLOR_RED);
+    botimport.DebugLineShow(lines[1], bboxcorners[4 + i], bboxcorners[4 + ((i + 1) & 3)], LINECOLOR_RED);
+    botimport.DebugLineShow(lines[2], bboxcorners[i], bboxcorners[4 + i], LINECOLOR_RED);
   }
 }
 
@@ -284,7 +284,7 @@ void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
     face = &aasworld.faces[facenum];
     if ( groundfacesonly )
     {
-      if ( (face->faceflags & 6) == 0 )
+      if ( (face->faceflags & (FACE_GROUND | FACE_LADDER)) == 0 )
         continue;
     }
     for ( j = 0; j < face->numedges; j++ )
@@ -429,7 +429,7 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
   aas_clientmove_t move;
 
   AAS_ShowArea(reach->areanum, 1);
-  AAS_DrawArrow(reach->start, reach->end, -202116623, -589439265);
+  AAS_DrawArrow(reach->start, reach->end, LINECOLOR_BLUE, LINECOLOR_YELLOW);
   if ( reach->traveltype == TRAVEL_JUMP || reach->traveltype == TRAVEL_WALKOFFLEDGE )
   {
     AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, reach->start, reach->end, &speed);
@@ -439,11 +439,12 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     VectorNormalize(dir);
     VectorScale(dir, speed, (float *)cmdmove);
     cmdmove[2] = libvar_sv_jumpvel->value;
-    move = AAS_ClientMovementPrediction(-1, reach->start, PRESENCE_NORMAL, 1, vec3_origin, cmdmove, 3, 30, 0.1, 61, 1);
+    move = AAS_ClientMovementPrediction(-1, reach->start, PRESENCE_NORMAL, 1, vec3_origin, cmdmove, 3, 30, 0.1,
+                                        SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE, 1);
     if ( reach->traveltype == TRAVEL_JUMP )
     {
       AAS_JumpReachRunStart((intptr_t)reach, (intptr_t)dir);
-      AAS_DrawCross(dir, 4.0, -202116623); /* LINECOLOR_BLUE = -202116623 (0xF3F3F3F1) */
+      AAS_DrawCross(dir, 4.0, LINECOLOR_BLUE);
     }
   }
   else if ( reach->traveltype == TRAVEL_ROCKETJUMP )
@@ -458,7 +459,8 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     velocity[0] = 0;
     velocity[1] = 0;
     velocity[2] = zvel;
-    move = AAS_ClientMovementPrediction(-1, reach->start, PRESENCE_NORMAL, 1, velocity, cmdmove, 3, 30, 0.1, 61, 1);
+    move = AAS_ClientMovementPrediction(-1, reach->start, PRESENCE_NORMAL, 1, velocity, cmdmove, 3, 30, 0.1,
+                                        SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE, 1);
   }
 }
 /*

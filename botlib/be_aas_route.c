@@ -497,10 +497,10 @@ __inline int __cdecl AAS_GetAreaContentsTravelFlags(int areanum)
   contents = aasworld.areasettings[areanum].contents;
   if ( contents & AREACONTENTS_WATER )
     return TFL_WATER;
-  if ( contents & AREACONTENTS_LAVA )
-    return TFL_LAVA;
   if ( contents & AREACONTENTS_SLIME )
     return TFL_SLIME;
+  if ( contents & AREACONTENTS_LAVA )
+    return TFL_LAVA;
   return TFL_AIR;
 } //end of the function AAS_GetAreaContentsTravelFlags
 

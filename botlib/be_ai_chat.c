@@ -28,6 +28,24 @@
 #include "l_script.h"
 #include "l_utils.h"
 
+/* Q3 be_ai_chat.c's own defines, as Gladiator has them.  The reply chat key flags
+ * are Q3's up to RCKFL_VARIABLES; BotLoadReplyChat sets female, male and it one bit
+ * lower than Q3, which later put RCKFL_BOTNAMES at 32.  MT_VARIABLE and MT_STRING
+ * live with the match piece in be_ai_def.h. */
+//escape character
+#define ESCAPE_CHAR				0x01	//'_'
+//reply chat key flags
+#define RCKFL_AND					1		//key must be present
+#define RCKFL_NOT					2		//key must be absent
+#define RCKFL_NAME					4		//name of bot must be present
+#define RCKFL_STRING				8		//key is a string
+#define RCKFL_VARIABLES				16		//key is a match template
+#define RCKFL_GENDERFEMALE			32		//bot must be female
+#define RCKFL_GENDERMALE			64		//bot must be male
+#define RCKFL_GENDERLESS			128		//bot must be genderless
+//time to ignore a chat message after using it
+#define CHATMESSAGE_RECENTTIME	20
+
 bot_consolemessage_t *freeconsolemessages; // 0x10064364 free-list head (be_ai_chat.c; was dword_10064364)
 bot_consolemessage_t *consolemessageheap; // pool base (initial bulk allocation)
 bot_matchtemplate_t *matchtemplates; // weak
@@ -367,7 +385,7 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
     lastsyn = NULL;
     while ( PC_ReadTokenHandle(src, token.string) )
     {
-      if ( token.type == 3 )
+      if ( token.type == TT_NUMBER )
       {
         context |= token.intvalue;
         contextstack[level] = token.intvalue;
@@ -384,7 +402,7 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
           return 0;
         }
       }
-      else if ( token.type == 5 )
+      else if ( token.type == TT_PUNCTUATION )
       {
         if ( !strcmp(token.string, "}") )
         {
@@ -417,7 +435,7 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
           lastsynonym = NULL;
           while ( 1 )
           {
-            if ( !PC_ExpectTokenString(src, "(") || !PC_ExpectTokenType(src, 1, 0, token.string) )
+            if ( !PC_ExpectTokenString(src, "(") || !PC_ExpectTokenType(src, TT_STRING, 0, token.string) )
             {
               FreeSource(src);
               return 0;
@@ -445,7 +463,7 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
             }
             ++numsynonyms;
             if ( !PC_ExpectTokenString(src, ",")
-              || !PC_ExpectTokenType(src, 3, 0, token.string)
+              || !PC_ExpectTokenType(src, TT_NUMBER, 0, token.string)
               || !PC_ExpectTokenString(src, ")") )
             {
               FreeSource(src);
@@ -611,7 +629,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
     lastrandom = NULL;
     while ( PC_ReadTokenHandle(source, token.string) )
     {
-      if ( token.type != 4 )
+      if ( token.type != TT_NAME )
       {
         SourceError(source, "unknown random %s", token.string);
         FreeSource(source);
@@ -642,7 +660,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
        * read with PC_ExpectTokenType(TT_STRING) + StripDoubleQuotes — NOT Q3's
        * BotLoadChatMessage, which would treat the commas as message-piece separators
        * and then fail at '}'. */
-      while ( PC_ExpectTokenType(source, 1, 0, token.string) )
+      while ( PC_ExpectTokenType(source, TT_STRING, 0, token.string) )
       {
         StripDoubleQuotes(token.string);
         size += sizeof(bot_randomstring_t) + strlen(token.string) + 1;
@@ -738,7 +756,7 @@ void __cdecl BotDumpMatchTemplates(void *matches)
     fprintf(log, "%8d { ");
     for ( piece = tmpl->first; piece; piece = piece->next )
     {
-      if ( piece->type == 2 )
+      if ( piece->type == MT_STRING )
       {
         for ( str = piece->firststring; str; str = str->next )
         {
@@ -747,7 +765,7 @@ void __cdecl BotDumpMatchTemplates(void *matches)
             fprintf(log, "|");
         }
       }
-      else if ( piece->type == 1 )
+      else if ( piece->type == MT_VARIABLE )
       {
         fprintf(log, "%d", piece->variable);
       }
@@ -804,15 +822,15 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
 
   while ( PC_ReadTokenHandle(source, token.string) )
   {
-    if ( token.type == 3 && (token.subtype & 0x1000) != 0 )
+    if ( token.type == TT_NUMBER && (token.subtype & TT_INTEGER) != 0 )
     {
       /* Q3's range guard, `< 0 ||` included (always false on the unsigned
        * intvalue, and folded away), with the error block first: gladi386.so
        * has it as the fall-through; cl.exe emits the same code as for the
        * nested positive form the DLL was reconstructed with. */
-      if ( token.intvalue < 0 || token.intvalue >= 10 )
+      if ( token.intvalue < 0 || token.intvalue >= MAX_MATCHVARIABLES )
       {
-        SourceError(source, "can't have more than %d match variables\n", 10);
+        SourceError(source, "can't have more than %d match variables\n", MAX_MATCHVARIABLES);
         FreeSource(source);
         BotFreeMatchPieces(firstpiece);
         return NULL;
@@ -835,7 +853,7 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
         firstpiece = matchpiece;
       lastpiece = matchpiece;
     }
-    else if ( token.type == 1 )
+    else if ( token.type == TT_STRING )
     {
       matchpiece = (bot_matchpiece_t *)GetMemory(sizeof(bot_matchpiece_t));
       matchpiece->firststring = NULL;
@@ -853,7 +871,7 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
       {
         if ( matchpiece->firststring )
         {
-          if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
+          if ( !PC_ExpectTokenType(source, TT_STRING, 0, token.string) )
           {
             FreeSource(source);
             BotFreeMatchPieces(firstpiece);
@@ -942,7 +960,7 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
 
   while ( PC_ReadTokenHandle(source, token.string) )
   {
-    if ( token.type != 3 || (token.subtype & 0x1000) == 0 )
+    if ( token.type != TT_NUMBER || (token.subtype & TT_INTEGER) == 0 )
     {
       SourceError(source, "expected integer, found %s\n", token.string);
       BotFreeMatchTemplates(matches);
@@ -970,14 +988,14 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
       else
         matches = match;
       lastmatch = match;
-      if ( !PC_ExpectTokenString(source, "(") || !PC_ExpectTokenType(source, 3, 4096, token.string) )
+      if ( !PC_ExpectTokenString(source, "(") || !PC_ExpectTokenType(source, TT_NUMBER, TT_INTEGER, token.string) )
       {
         BotFreeMatchTemplates(matches);
         FreeSource(source);
         return NULL;
       }
       match->type = token.intvalue;
-      if ( !PC_ExpectTokenString(source, ",") || !PC_ExpectTokenType(source, 3, 4096, token.string) )
+      if ( !PC_ExpectTokenString(source, ",") || !PC_ExpectTokenType(source, TT_NUMBER, TT_INTEGER, token.string) )
       {
         BotFreeMatchTemplates(matches);
         FreeSource(source);
@@ -1141,7 +1159,7 @@ bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *message, bot_
   msgptr = message;
   while ( *msgptr )
   {
-    if ( *msgptr == 1 )
+    if ( *msgptr == ESCAPE_CHAR )
     {
       ++msgptr;
       switch ( *msgptr )
@@ -1243,17 +1261,17 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
   {
     if ( !PC_ExpectAnyToken(source, token.string) )
       return 0;
-    if ( token.type == 1 )
+    if ( token.type == TT_STRING )
     {
       StripDoubleQuotes(token.string);
       strcat(chatmessagestring, token.string);
     }
-    else if ( token.type == 3 && (token.subtype & 0x1000) != 0 )
+    else if ( token.type == TT_NUMBER && (token.subtype & TT_INTEGER) != 0 )
     {
       sprintf(&chatmessagestring[strlen(chatmessagestring)], "%cv%d%c", 1,
               token.intvalue, 1);
     }
-    else if ( token.type == 4 )
+    else if ( token.type == TT_NAME )
     {
       sprintf(&chatmessagestring[strlen(chatmessagestring)], "%cr%s%c", 1,
               token.string, 1);
@@ -1297,26 +1315,26 @@ void __cdecl BotDumpReplyChat(bot_replychat_t *replychat)
     if (ebx) {
       do {
         flags = ebx->flags;
-        if (flags & 0x01)
+        if (flags & RCKFL_AND)
           fprintf(log, "&");
-        else if (flags & 0x02)
+        else if (flags & RCKFL_NOT)
           fprintf(log, "!");
 
         flags = ebx->flags;
-        if (flags & 0x04) {
+        if (flags & RCKFL_NAME) {
           fprintf(log, "name");
-        } else if (flags & 0x20) {
+        } else if (flags & RCKFL_GENDERFEMALE) {
           fprintf(log, "female");
-        } else if (flags & 0x40) {
+        } else if (flags & RCKFL_GENDERMALE) {
           fprintf(log, "male");
-        } else if (flags & 0x80) {
+        } else if (flags & RCKFL_GENDERLESS) {
           fprintf(log, "it");
-        } else if (flags & 0x10) {
+        } else if (flags & RCKFL_VARIABLES) {
           fprintf(log, "(");
           p = ebx->match;
           if (p) {
             do {
-              if (p->type == 2) {
+              if (p->type == MT_STRING) {
                 fprintf(log, "\"%s\"", p->firststring->string);
               } else {
                 fprintf(log, "%d", p->variable);
@@ -1327,7 +1345,7 @@ void __cdecl BotDumpReplyChat(bot_replychat_t *replychat)
             } while (p);
           }
           fprintf(log, ")");
-        } else if (flags & 0x08) {
+        } else if (flags & RCKFL_STRING) {
           fprintf(log, "\"%s\"", ebx->string);
         }
 
@@ -1438,38 +1456,38 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
       rc->keys = key;
       if ( PC_CheckTokenString(source, "&") )
       {
-        key->flags |= 1;
+        key->flags |= RCKFL_AND;
       }
       else if ( PC_CheckTokenString(source, "!") )
       {
-        key->flags |= 2;
+        key->flags |= RCKFL_NOT;
       }
 
       if ( PC_CheckTokenString(source, "name") )
       {
-        key->flags |= 4;
+        key->flags |= RCKFL_NAME;
       }
       else if ( PC_CheckTokenString(source, "female") )
       {
-        key->flags |= 0x20;
+        key->flags |= RCKFL_GENDERFEMALE;
       }
       else if ( PC_CheckTokenString(source, "male") )
       {
-        key->flags |= 0x40;
+        key->flags |= RCKFL_GENDERMALE;
       }
       else if ( PC_CheckTokenString(source, "it") )
       {
-        key->flags |= 0x80;
+        key->flags |= RCKFL_GENDERLESS;
       }
       else if ( PC_CheckTokenString(source, "(") )
       {
-        key->flags |= 0x10;
+        key->flags |= RCKFL_VARIABLES;
         key->match = BotLoadMatchPieces(source, ")");
       }
       else
       {
-        key->flags |= 8;
-        if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
+        key->flags |= RCKFL_STRING;
+        if ( !PC_ExpectTokenType(source, TT_STRING, 0, token.string) )
         {
           BotFreeReplyChat(replyhead);
           FreeSource(source);
@@ -1484,7 +1502,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
     while ( !PC_CheckTokenString(source, "]") );
 
     if ( !PC_ExpectTokenString(source, "=")
-        || !PC_ExpectTokenType(source, 3, 0, token.string) )
+        || !PC_ExpectTokenType(source, TT_NUMBER, 0, token.string) )
     {
       BotFreeReplyChat(replyhead);
       FreeSource(source);
@@ -1516,7 +1534,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
       cm = (bot_chatmessage_t *)GetClearedMemory(sizeof(bot_chatmessage_t) + strlen(chatmessagestring) + 1);
       cm->chatmessage = (char *)(cm + 1);
       strcpy(cm->chatmessage, chatmessagestring);
-      cm->time = -40.0f;
+      cm->time = -2*CHATMESSAGE_RECENTTIME;
       cm->next = rc->firstchatmessage;
       rc->firstchatmessage = cm;
       rc->numchatmessages++;
@@ -1605,7 +1623,7 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
       BotFreeChatTree(list);   /* free partial list */
       return 0;
     }
-    if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) )
+    if ( !PC_ExpectTokenType(src, TT_STRING, 0, (intptr_t)token) )
     {
       FreeSource(src);
       BotFreeChatTree(list);
@@ -1632,7 +1650,7 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
           BotFreeChatTree(list);
           return 0;
         }
-        if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) || !PC_ExpectTokenString(src, "{") )
+        if ( !PC_ExpectTokenType(src, TT_STRING, 0, (intptr_t)token) || !PC_ExpectTokenString(src, "{") )
         {
           FreeSource(src);
           BotFreeChatTree(list);
@@ -1658,7 +1676,7 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
             slen = strlen(buf);
             line = (chatline_t *)GetClearedMemory(sizeof(chatline_t) + slen);
             line->string = line->buf;
-            line->ltime  = -40.0f;
+            line->ltime  = -2*CHATMESSAGE_RECENTTIME;
             line->next   = cur_type->firstline;
             strcpy(line->buf, buf);
             cur_type->firstline = line;
@@ -1762,7 +1780,7 @@ while ( PC_ReadTokenHandle(src, token) )
 {
   if ( !strcmp(token, "chat") )
   {
-    if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) )
+    if ( !PC_ExpectTokenType(src, TT_STRING, 0, (intptr_t)token) )
     {
       FreeSource(src);
       return 0;
@@ -1791,7 +1809,7 @@ while ( PC_ReadTokenHandle(src, token) )
           FreeSource(src);
           return 0;
         }
-        if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) || !PC_ExpectTokenString(src, "{") )
+        if ( !PC_ExpectTokenType(src, TT_STRING, 0, (intptr_t)token) || !PC_ExpectTokenString(src, "{") )
         {
           FreeSource(src);
           return 0;
@@ -1817,7 +1835,7 @@ while ( PC_ReadTokenHandle(src, token) )
           if ( pass )
           {
             line = (chatline_t *)ptr;
-            line->ltime = -40.0f;
+            line->ltime = -2*CHATMESSAGE_RECENTTIME;
             line->next = cur_type->firstline;
             cur_type->firstline = line;
             ptr += sizeof(chatline_t);
@@ -1965,7 +1983,7 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, i
   len = 0;
   while ( *msgptr )
   {
-    if ( *msgptr == 1 )
+    if ( *msgptr == ESCAPE_CHAR )
     {
       ++msgptr;
       switch ( *msgptr )
@@ -1977,7 +1995,7 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, i
             num = num * 10 + (*msgptr++) - '0';
           if ( *msgptr )
             ++msgptr;
-          if ( num > 10 )
+          if ( num > MAX_MATCHVARIABLES )
           {
             botimport.Print(PRT_ERROR, "BotConstructChat: message %s variable %d out of range\n", message, num);
             return;
@@ -2087,7 +2105,7 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type)
           {
             if ( --pick < 0 )
             {
-              l->ltime = AAS_Time() + 20.0f;
+              l->ltime = AAS_Time() + CHATMESSAGE_RECENTTIME;
               return l->string;
             }
           }
@@ -2108,7 +2126,7 @@ void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...)
   const char *v5; // edi
   int i; // ebx
   va_list ap;
-  bot_chatvar_t vars[10]; // BYREF
+  bot_chatvar_t vars[MAX_MATCHVARIABLES]; // BYREF
 
   list = (chatlist_t *)BotChatDumpSlot(cs);
   if ( list )
@@ -2120,7 +2138,7 @@ void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...)
       va_start(ap, type);
       v5 = va_arg(ap, const char *);
       i = 0;
-      while ( i < 10 )
+      while ( i < MAX_MATCHVARIABLES )
       {
         if ( !v5 )
           break;
@@ -2160,26 +2178,26 @@ void __cdecl BotPrintReplyChatKeys(bot_replychat_t *arg)
 
   do {
     flags = edi->flags;
-    if (flags & 0x01)
+    if (flags & RCKFL_AND)
       botimport.Print(PRT_MESSAGE, "&");
-    else if (flags & 0x02)
+    else if (flags & RCKFL_NOT)
       botimport.Print(PRT_MESSAGE, "!");
 
     flags = edi->flags;
-    if (flags & 0x04) {
+    if (flags & RCKFL_NAME) {
       botimport.Print(PRT_MESSAGE, "name");
-    } else if (flags & 0x20) {
+    } else if (flags & RCKFL_GENDERFEMALE) {
       botimport.Print(PRT_MESSAGE, "female");
-    } else if (flags & 0x40) {
+    } else if (flags & RCKFL_GENDERMALE) {
       botimport.Print(PRT_MESSAGE, "male");
-    } else if (flags & 0x80) {
+    } else if (flags & RCKFL_GENDERLESS) {
       botimport.Print(PRT_MESSAGE, "it");
-    } else if (flags & 0x10) {
+    } else if (flags & RCKFL_VARIABLES) {
       botimport.Print(PRT_MESSAGE, "(");
       esi = edi->match;
       if (esi) {
         do {
-          if (esi->type == 2) {
+          if (esi->type == MT_STRING) {
             botimport.Print(PRT_MESSAGE, "\"%s\"", esi->firststring->string);
           } else {
             botimport.Print(PRT_MESSAGE, "%d", esi->variable);
@@ -2190,7 +2208,7 @@ void __cdecl BotPrintReplyChatKeys(bot_replychat_t *arg)
         } while (esi);
       }
       botimport.Print(PRT_MESSAGE, ")");
-    } else if (flags & 0x08) {
+    } else if (flags & RCKFL_STRING) {
       botimport.Print(PRT_MESSAGE, "\"%s\"", edi->string);
     }
 
@@ -2237,13 +2255,13 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
     {
       res = 0;
       //get the match result
-      if (key->flags & 0x20) res = (cs->gender == 1);
-      else if (key->flags & 0x40) res = (cs->gender == 2);
-      else if (key->flags & 0x80) res = (cs->gender == 0);
-      else if (key->flags & 0x10) res = StringsMatch(key->match, &match);
-      else if (key->flags & 8) res = (StringContains(message, key->string, 0) != 0);
+      if (key->flags & RCKFL_GENDERFEMALE) res = (cs->gender == CHAT_GENDERFEMALE);
+      else if (key->flags & RCKFL_GENDERMALE) res = (cs->gender == CHAT_GENDERMALE);
+      else if (key->flags & RCKFL_GENDERLESS) res = (cs->gender == CHAT_GENDERLESS);
+      else if (key->flags & RCKFL_VARIABLES) res = StringsMatch(key->match, &match);
+      else if (key->flags & RCKFL_STRING) res = (StringContains(message, key->string, 0) != 0);
       //if the key must be present
-      if (key->flags & 1)
+      if (key->flags & RCKFL_AND)
       {
         if (!res)
         {
@@ -2253,7 +2271,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
         found = 1;
       }
       //if the key must be absent
-      else if (key->flags & 2)
+      else if (key->flags & RCKFL_NOT)
       {
         if (res)
         {
@@ -2295,7 +2313,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
   }
   if (bestchatmessage)
   {
-    bestchatmessage->time = AAS_Time() + 20.0f;
+    bestchatmessage->time = AAS_Time() + CHATMESSAGE_RECENTTIME;
     BotConstructChatMessage(cs, bestchatmessage->chatmessage, 0, (bot_chatvar_t *)match.variables, 16);
     return 1;
   }
@@ -2317,7 +2335,7 @@ void __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto)
 {
   if ( strlen(chatstate->chatmessage) )
   {
-    if ( sendto == 1 )
+    if ( sendto == CHAT_TEAM )
       EA_SayTeam(clientto, chatstate->chatmessage);
     else
       EA_Say(clientto, chatstate->chatmessage);
@@ -2334,9 +2352,9 @@ void __cdecl BotSetChatGender(bot_chatstate_t *chatstate, int gender)
 {
   switch ( gender )
   {
-    case 1: chatstate->gender = 1; break;
-    case 2: chatstate->gender = 2; break;
-    default: chatstate->gender = 0; break;
+    case CHAT_GENDERFEMALE: chatstate->gender = CHAT_GENDERFEMALE; break;
+    case CHAT_GENDERMALE: chatstate->gender = CHAT_GENDERMALE; break;
+    default: chatstate->gender = CHAT_GENDERLESS; break;
   }
 }
 

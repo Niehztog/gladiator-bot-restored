@@ -31,14 +31,6 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
 aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num);
 int AAS_RoutingInfo();
 int __cdecl AAS_TravelFlagForType(int traveltype);
-/* Area contents bits, read out of AAS_GetAreaContentsTravelFlags' own disassembly
- * (gladi386.so F526).  It maps them to TFL_WATER, TFL_LAVA and TFL_SLIME, which live
- * with the other travel flags in be_aas_def.h; Q3 botlib has the same function with
- * the same shape but its own flag values. */
-#define AREACONTENTS_WATER   0x0001
-#define AREACONTENTS_SLIME   0x0002
-#define AREACONTENTS_LAVA    0x0004
-
 /* Q3's `__inline` helpers.  Declared WITHOUT the keyword on every platform: under C99
  * inline rules that is what makes the __inline definition in be_aas_route.c an external
  * definition too, i.e. the gnu89/MSVC6 semantics both 1999 compilers had.  Hide these

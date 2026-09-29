@@ -94,10 +94,11 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   start_pos[2] += 1.0f;
   runstart_vec = (float *)runstart;
   VectorScale((float *)hordir, 400.0f, (float *)cmdmove);
-  move = AAS_ClientMovementPrediction(-1, start_pos, PRESENCE_NORMAL, 1, vec3_origin, cmdmove, 1, 2, 0.1f, 124, 0);
+  move = AAS_ClientMovementPrediction(-1, start_pos, PRESENCE_NORMAL, 1, vec3_origin, cmdmove, 1, 2, 0.1f,
+                                   SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE|SE_GAP, 0);
   VectorCopy(move.endpos, runstart_vec);
   stopevent = move.stopevent;
-  if ( (stopevent & 0x38) != 0 )
+  if ( (stopevent & (SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE)) != 0 )
   {
     VectorCopy(start_pos, runstart_vec);
   }
@@ -177,7 +178,7 @@ int __cdecl AAS_AgainstLadder(vec3_t origin)
     }
   }
   if ( !areanum ) return 0;
-  if ( !(aasworld.areasettings[areanum].areaflags & 2)) return 0;
+  if ( !(aasworld.areasettings[areanum].areaflags & AREA_LADDER)) return 0;
   if ( !(aasworld.areasettings[areanum].presencetype & PRESENCE_NORMAL)) return 0;
 
   area = &aasworld.areas[areanum];
@@ -186,7 +187,7 @@ int __cdecl AAS_AgainstLadder(vec3_t origin)
     facenum = aasworld.faceindex[area->firstface + i];
     side = facenum < 0;
     face = &aasworld.faces[abs(facenum)];
-    if (!(face->faceflags & 2)) continue;
+    if (!(face->faceflags & FACE_LADDER)) continue;
     plane = &aasworld.planes[face->planenum ^ side];
     if (abs(DotProduct(plane->normal, origin) - plane->dist) < 3)
     {
@@ -423,7 +424,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
       if (visualize)
       {
         if (trace.startsolid) botimport.Print(PRT_MESSAGE, "PredictMovement: start solid\n");
-        AAS_DebugLine(org, trace.endpos, -218959632);
+        AAS_DebugLine(org, trace.endpos, LINECOLOR_RED);
       } //end if
       //move the entity to the trace end point
       VectorCopy(trace.endpos, org);
@@ -457,7 +458,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
                 {
                   VectorCopy(org, start);
                   start[2] = steptrace.endpos[2];
-                  AAS_DebugLine(org, start, -202116623);
+                  AAS_DebugLine(org, start, LINECOLOR_BLUE);
                 } //end if
               } //end if
               org[2] = steptrace.endpos[2];
@@ -483,7 +484,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
           {
             onground = 1;
           } //end if
-          if (stopevent & 0x20)
+          if (stopevent & SE_HITGROUNDDAMAGE)
           {
             delta = 0;
             if (old_frame_test_vel[2] < 0 &&
@@ -506,7 +507,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
                 VectorCopy(org, move.endpos);
                 VectorCopy(frame_test_vel, move.velocity);
                 move.trace = trace;
-                move.stopevent = 0x20;
+                move.stopevent = SE_HITGROUNDDAMAGE;
                 move.presencetype = presencetype;
                 move.endcontents = 4;
                 move.time = n * frametime;
@@ -529,10 +530,17 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
       feet[2] -= 22;
       pc = AAS_PointContents(feet);
       //get event from pc
-      event = 0;
-      if (pc & CONTENTS_LAVA) event |= 0x10;
-      if (pc & CONTENTS_SLIME) event |= 8;
-      if (pc & CONTENTS_WATER) event |= 8;
+      event = SE_NONE;
+      if (pc & CONTENTS_LAVA) event |= SE_ENTERLAVA;
+      if (pc & CONTENTS_SLIME) event |= SE_ENTERSLIME;
+      /* The original's: water raises SE_ENTERSLIME, where Q3 raises SE_ENTERWATER,
+       * so the callers' slime-or-lava tests also refuse a landing in water.
+       * GLAD_SERVERFIX(movepredict-water-as-slime) builds Q3's line. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(movepredict-water-as-slime) */
+      if (pc & CONTENTS_WATER) event |= SE_ENTERWATER;
+#else
+      if (pc & CONTENTS_WATER) event |= SE_ENTERSLIME;
+#endif
       //if in lava or slime
       if (event & stopevent)
       {
@@ -551,12 +559,12 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
     //if onground and on the ground for at least one whole frame
     if (onground)
     {
-      if (stopevent & 1)
+      if (stopevent & SE_HITGROUND)
       {
         VectorCopy(org, move.endpos);
         VectorCopy(frame_test_vel, move.velocity);
         move.trace = trace;
-        move.stopevent = 1;
+        move.stopevent = SE_HITGROUND;
         move.presencetype = presencetype;
         move.endcontents = 4;
         move.time = n * frametime;
@@ -564,19 +572,19 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
         return move;
       } //end if
     } //end if
-    else if (stopevent & 2)
+    else if (stopevent & SE_LEAVEGROUND)
     {
       VectorCopy(org, move.endpos);
       VectorCopy(frame_test_vel, move.velocity);
       move.trace = trace;
-      move.stopevent = 2;
+      move.stopevent = SE_LEAVEGROUND;
       move.presencetype = presencetype;
       move.endcontents = 4;
       move.time = n * frametime;
       move.frames = n;
       return move;
     } //end else if
-    else if (stopevent & 0x40)
+    else if (stopevent & SE_GAP)
     {
       aas_trace_t gaptrace;
 
@@ -595,7 +603,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
             VectorCopy(lastorg, move.endpos);
             VectorCopy(frame_test_vel, move.velocity);
             move.trace = trace;
-            move.stopevent = 0x40;
+            move.stopevent = SE_GAP;
             move.presencetype = presencetype;
             move.endcontents = 4;
             move.time = n * frametime;
@@ -609,7 +617,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
   //
   VectorCopy(org, move.endpos);
   VectorCopy(frame_test_vel, move.velocity);
-  move.stopevent = 0;
+  move.stopevent = SE_NONE;
   move.presencetype = presencetype;
   move.endcontents = 4;
   move.time = n * frametime;
@@ -645,9 +653,9 @@ void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
   AAS_ClearShownDebugLines();
   result = AAS_ClientMovementPrediction(entnum, origin, PRESENCE_NORMAL, 1,
                                velocity, cmd_move, 13, 13,
-                               0.1f, 1, 1);
+                               0.1f, SE_HITGROUND, 1);
 
-  if (result.stopevent & 0x02)
+  if (result.stopevent & SE_LEAVEGROUND)
     botimport.Print(PRT_MESSAGE, "leave ground\n");
 }
 

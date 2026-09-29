@@ -93,6 +93,7 @@ BOOL __cdecl BotWantsToChase(int *bs);
 int __cdecl BotWantsToHelp(bot_state_t *bs);
 BOOL __cdecl BotWantsToRetreat(int *bs);
 char *__cdecl EasyClientName(int client, char *buf);
+BOOL __cdecl EntityIsDead(aas_entityinfo_t *entinfo);
 BOOL __cdecl EntityIsShooting(intptr_t a1);
 int __cdecl FindClientByName(char *name);
 BOOL TeamPlayIsOn();
@@ -100,9 +101,8 @@ char *__cdecl stristr(char *str, char *charset);
 char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws);
 int __cdecl sub_100214E0(bot_state_t *p);
 void __cdecl sub_100215E0(bot_state_t *bs);
-BOOL __cdecl sub_10021710(int *a1);
 void __cdecl sub_10025070(void);
-void __cdecl sub_100262C0(_DWORD *a1, bot_goal_t *a2);
+void __cdecl sub_100262C0(bot_state_t *bs, bot_goal_t *a2);
 void __cdecl sub_100289A0(bot_state_t *bs, float a2);
 int __cdecl sub_10028A40(bot_state_t *bs, float a2);
 

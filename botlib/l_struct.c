@@ -59,9 +59,9 @@ int __cdecl ReadNumber(source_t *source, fielddef_t *fd, float *p)
 
   if ( !PC_ExpectAnyToken(source, token.string) ) return 0;
   /* check for minus sign */
-  if ( token.type == 5 )
+  if ( token.type == TT_PUNCTUATION )
   {
-    if ( fd->type & 0x400 )
+    if ( fd->type & FT_UNSIGNED )
     {
       SourceError(source, "expected unsigned value, found %s", token.string);
       return 0;
@@ -77,22 +77,22 @@ int __cdecl ReadNumber(source_t *source, fielddef_t *fd, float *p)
     if ( !PC_ExpectAnyToken(source, token.string) ) return 0;
   }
   /* check if it is a number */
-  if ( token.type != 3 )
+  if ( token.type != TT_NUMBER )
   {
     SourceError(source, "expected number, found %s", token.string);
     return 0;
   }
   /* check for a float value */
-  if ( token.subtype & 0x800 )
+  if ( token.subtype & TT_FLOAT )
   {
-    if ( (fd->type & 0xFF) != 3 )
+    if ( (fd->type & FT_TYPE) != FT_FLOAT )
     {
       SourceError(source, "unexpected float");
       return 0;
     }
     floatval = token.floatvalue;
     if ( negative ) floatval = -floatval;
-    if ( fd->type & 0x200 )
+    if ( fd->type & FT_BOUNDED )
     {
       if ( floatval < fd->floatmin || floatval > fd->floatmax )
       {
@@ -106,19 +106,19 @@ int __cdecl ReadNumber(source_t *source, fielddef_t *fd, float *p)
   intval = token.intvalue;
   if ( negative ) intval = -intval;
   /* check bounds */
-  if ( (fd->type & 0xFF) == 1 )
+  if ( (fd->type & FT_TYPE) == FT_CHAR )
   {
-    if ( fd->type & 0x400 ) {intmin = 0; intmax = 255;}
+    if ( fd->type & FT_UNSIGNED ) {intmin = 0; intmax = 255;}
     else {intmin = -128; intmax = 127;}
   }
-  if ( (fd->type & 0xFF) == 2 )
+  if ( (fd->type & FT_TYPE) == FT_INT )
   {
-    if ( fd->type & 0x400 ) {intmin = 0; intmax = 65535;}
+    if ( fd->type & FT_UNSIGNED ) {intmin = 0; intmax = 65535;}
     else {intmin = -32768; intmax = 32767;}
   }
-  if ( (fd->type & 0xFF) == 1 || (fd->type & 0xFF) == 2 )
+  if ( (fd->type & FT_TYPE) == FT_CHAR || (fd->type & FT_TYPE) == FT_INT )
   {
-    if ( fd->type & 0x200 )
+    if ( fd->type & FT_BOUNDED )
     {
       intmin = Maximum(intmin, fd->floatmin);
       intmax = Minimum(intmax, fd->floatmax);
@@ -129,9 +129,9 @@ int __cdecl ReadNumber(source_t *source, fielddef_t *fd, float *p)
       return 0;
     }
   }
-  else if ( (fd->type & 0xFF) == 3 )
+  else if ( (fd->type & FT_TYPE) == FT_FLOAT )
   {
-    if ( fd->type & 0x200 )
+    if ( fd->type & FT_BOUNDED )
     {
       if ( intval < fd->floatmin || intval > fd->floatmax )
       {
@@ -141,17 +141,17 @@ int __cdecl ReadNumber(source_t *source, fielddef_t *fd, float *p)
     }
   }
   /* store the value */
-  if ( (fd->type & 0xFF) == 1 )
+  if ( (fd->type & FT_TYPE) == FT_CHAR )
   {
-    if ( fd->type & 0x400 ) *(unsigned char *) p = (unsigned char) intval;
+    if ( fd->type & FT_UNSIGNED ) *(unsigned char *) p = (unsigned char) intval;
     else *(char *) p = (char) intval;
   }
-  else if ( (fd->type & 0xFF) == 2 )
+  else if ( (fd->type & FT_TYPE) == FT_INT )
   {
-    if ( fd->type & 0x400 ) *(unsigned int *) p = (unsigned int) intval;
+    if ( fd->type & FT_UNSIGNED ) *(unsigned int *) p = (unsigned int) intval;
     else *(int *) p = (int) intval;
   }
-  else if ( (fd->type & 0xFF) == 3 )
+  else if ( (fd->type & FT_TYPE) == FT_FLOAT )
   {
     *(float *) p = (float) intval;
   }
@@ -166,7 +166,7 @@ int __cdecl ReadChar(source_t *source, fielddef_t *fd, float *p)
 
   if ( !PC_ExpectAnyToken(source, token.string) ) return 0;
   /* take literals into account */
-  if ( token.type == 2 )
+  if ( token.type == TT_LITERAL )
   {
     StripSingleQuotes(token.string);
     *(_BYTE *)p = token.string[0];
@@ -186,11 +186,11 @@ int __cdecl ReadString(source_t *source, char **fd, char *p)
 {
   char Source[sizeof(token_t)] __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
 
-  if ( !PC_ExpectTokenType(source, 1, 0, Source) )
+  if ( !PC_ExpectTokenType(source, TT_STRING, 0, Source) )
     return 0;
   StripDoubleQuotes(Source);
-  strncpy(p, Source, 0x50u);
-  p[79] = 0;
+  strncpy(p, Source, MAX_STRINGFIELD);
+  p[MAX_STRINGFIELD-1] = 0;
   return 1;
 }
 
@@ -217,7 +217,7 @@ int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
       SourceError(source, "unknown structure field %s", token.string);
       return 0;
     }
-    if ( (fd->type & 0x100) != 0 )
+    if ( (fd->type & FT_ARRAY) != 0 )
     {
       num = (int)fd->maxarray;
       if ( !PC_ExpectTokenString(source, "{") )
@@ -230,34 +230,34 @@ int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
     p = structure + fd->offset;
     while ( num-- > 0 )
     {
-      if ( (fd->type & 0x100) != 0 )
+      if ( (fd->type & FT_ARRAY) != 0 )
       {
         if ( PC_CheckTokenString(source, "}") )
           break;
       }
-      switch ( fd->type & 0xFF )
+      switch ( fd->type & FT_TYPE )
       {
-        case 1:
+        case FT_CHAR:
           if ( !ReadChar(source, fd, (float *)p) )
             return 0;
           p += sizeof(char);
           break;
-        case 2:
+        case FT_INT:
           if ( !ReadNumber(source, fd, (float *)p) )
             return 0;
           p += sizeof(int);
           break;
-        case 3:
+        case FT_FLOAT:
           if ( !ReadNumber(source, fd, (float *)p) )
             return 0;
           p += sizeof(float);
           break;
-        case 4:
+        case FT_STRING:
           if ( !ReadString(source, (char **)fd, p) )
             return 0;
-          p += 80;
+          p += MAX_STRINGFIELD;
           break;
-        case 6:
+        case FT_STRUCT:
           if ( !fd->substruct )
           {
             SourceError(source, "BUG: no sub structure defined");
@@ -267,7 +267,7 @@ int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
           p += fd->substruct->size;
           break;
       }
-      if ( (fd->type & 0x100) != 0 )
+      if ( (fd->type & FT_ARRAY) != 0 )
       {
         if ( !PC_ExpectAnyToken(source, token.string) )
           return 0;
@@ -343,7 +343,7 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
     if ( fprintf(fp, "%s\t", fd->name) < 0 )
       return 0;
     p = (char *)(structure + fd->offset);
-    if ( (fd->type & 0x100) != 0 )
+    if ( (fd->type & FT_ARRAY) != 0 )
     {
       num = fd->maxarray;
       if ( fprintf(fp, "{") < 0 )
@@ -355,36 +355,36 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
     }
     while ( num-- > 0 )
     {
-      switch ( fd->type & 0xFF )
+      switch ( fd->type & FT_TYPE )
       {
-        case 1:
+        case FT_CHAR:
           if ( fprintf(fp, "%d", *(char *)p) < 0 )
             return 0;
           p += 1;
           break;
-        case 2:
+        case FT_INT:
           if ( fprintf(fp, "%d", *(int *)p) < 0 )
             return 0;
           p += 4;
           break;
-        case 3:
+        case FT_FLOAT:
           if ( !WriteFloat(fp, *(float *)p) )
             return 0;
           p += 4;
           break;
-        case 4:
+        case FT_STRING:
           if ( fprintf(fp, "\"%s\"", p) < 0 )
             return 0;
-          p += 80;
+          p += MAX_STRINGFIELD;
           break;
-        case 6:
+        case FT_STRUCT:
           /* Nested struct: recurse. */
           if ( !WriteStructWithIndent(fp, fd->substruct, structure, indent) )
             return 0;
           p += fd->substruct->size;
           break;
       }
-      if ( (fd->type & 0x100) != 0 )
+      if ( (fd->type & FT_ARRAY) != 0 )
       {
         if ( num > 0 )
         {

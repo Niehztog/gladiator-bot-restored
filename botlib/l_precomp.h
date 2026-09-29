@@ -129,6 +129,16 @@ int __cdecl PC_Directive_if(source_t *source);
 	#endif
 #endif
 
+/* Q3 l_precomp.h's define flag and builtin numbers, verbatim; the builtin table and
+ * PC_ExpandBuiltinDefine's switch spell 1..5 in this order. */
+#define DEFINE_FIXED			0x0001
+
+#define BUILTIN_LINE			1
+#define BUILTIN_FILE			2
+#define BUILTIN_DATE			3
+#define BUILTIN_TIME			4
+#define BUILTIN_STDC			5
+
 #define INDENT_IF       0x0001
 #define INDENT_ELSE     0x0002
 #define INDENT_ELIF     0x0004

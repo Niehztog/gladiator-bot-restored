@@ -3,6 +3,22 @@
 #ifndef BOTLIB_L_STRUCT_H
 #define BOTLIB_L_STRUCT_H
 
+/* Q3 l_struct.h's string length and field types, verbatim.  The FE() tables and
+ * ReadStructure/WriteStructure use every one. */
+#define MAX_STRINGFIELD				80
+//field types
+#define FT_CHAR						1			// char
+#define FT_INT							2			// int
+#define FT_FLOAT						3			// float
+#define FT_STRING						4			// char [MAX_STRINGFIELD]
+#define FT_STRUCT						6			// struct (sub structure)
+//type only mask
+#define FT_TYPE						0x00FF	// only type, clear subtype
+//sub types
+#define FT_ARRAY						0x0100	// array of type
+#define FT_BOUNDED					0x0200	// bounded value
+#define FT_UNSIGNED					0x0400
+
 /* structdef_t: the struct descriptor ReadStructure/FindField take. */
 /* structdef_t — struct descriptor passed to ReadStructure / FindField.  A
  * plain int[2] { size, fields_ptr } in the 32-bit original; typed here so it
@@ -17,7 +33,7 @@ typedef struct { int size; char **fields; } structdef_t;
 typedef struct fielddef_s {
     const char *name;            /* slot 0 */
     intptr_t    offset;          /* slot 1 */
-    intptr_t    type;            /* slot 2 — low byte FT_*, 0x100 = FT_ARRAY */
+    intptr_t    type;            /* slot 2 — FT_* type and sub types */
     intptr_t    maxarray;        /* slot 3 */
     float       floatmin;        /* slot 4 — Q3's float members; each is the low */
 #if BOTLIB_NEED_SIDEBAND

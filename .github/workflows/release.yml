@@ -369,6 +369,19 @@ jobs:
             other client slot the check never saw the floor, so they could start to chat
             while riding a lift or standing on a door. The check now traces against solid
             ground for every bot, as in Quake III. <!-- fix: chat-position-trace-args -->
+          - The bot library's movement prediction reported stepping into water as
+            stepping into slime. So bots refused every walk and every jump that ended in
+            water, and the navigation data got no jump routes that land in water. Water
+            is now reported as water, as in Quake III. <!-- fix: movepredict-water-as-slime -->
+          - Bots took an enemy holding the Xatrix phalanx for one holding the CTF
+            grapple, because the phalanx has the view-weapon number that plain CTF gives
+            the grapple. The phalanx no longer counts as the grapple. No bot file that
+            ships with Gladiator reads this, so only custom bot files can notice
+            it. <!-- fix: enemy-phalanx-as-grapple -->
+          - In CTF, a bot holding the Regeneration tech kept it on reaching a Haste tech,
+            so it could not pick the Haste up. On reaching another Regeneration it
+            dropped its own. It now swaps techs like a bot holding any other
+            tech. <!-- fix: ctf-tech4-compares-tech3 -->
 
           Where Quake III later fixed the same code, the fix is its own correction —
           Mr. Elusive wrote both bot libraries — and where it has no counterpart, the

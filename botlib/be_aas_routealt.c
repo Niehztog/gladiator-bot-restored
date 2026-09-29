@@ -113,7 +113,7 @@ int __cdecl AAS_AlternativeRouteGoals(
   for ( i = 1; i < aasworld.numareas; i++ )
   {
     //
-    if ( !(aasworld.areasettings[i].contents & 0x20) )
+    if ( !(aasworld.areasettings[i].contents & AREACONTENTS_ROUTEPORTAL) )
       continue;
     //if the area has no reachabilities
     if ( !AAS_AreaReachability(i) )

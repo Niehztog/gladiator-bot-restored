@@ -31,6 +31,11 @@
 #include "l_libvar.h"
 #include "l_memory.h"
 #include "l_utils.h"
+//
+#include "chars.h"				//characteristics
+#include "inv.h"				//indexes into the inventory
+#include "syn.h"				//synonyms
+#include "match.h"				//string matching types and vars
 
 int numbots; /* active-bot count, ++/-- in BotSetupClient/BotShutdownClient, returned by
                 NumBots(); name recovered from the tourney-2.5 Linux gladi386.so .dynsym */
@@ -194,8 +199,8 @@ void __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
     bs->ideal_viewangles[PITCH] -= 360;
   if ( bs->enemy )
   {
-    factor = Characteristic_BFloat(BotCharacter(bs), 9, 0.1f, 1800);
-    maxchange = Characteristic_BFloat(BotCharacter(bs), 10, 0.1f, 1800);
+    factor = Characteristic_BFloat(BotCharacter(bs), CHARACTERISTIC_VIEW_ACCELERATION, 0.1f, 1800);
+    maxchange = Characteristic_BFloat(BotCharacter(bs), CHARACTERISTIC_VIEW_DEACCELERATION, 0.1f, 1800);
   }
   else
   {
@@ -312,11 +317,11 @@ int __cdecl BotSetupClient(int a1, char *Source)
   }
   memcpy(bs->settings, Source, 0x1B0u);
   //load the item weights
-  filename = Characteristic_String(BotCharacter(bs), 28);
+  filename = Characteristic_String(BotCharacter(bs), CHARACTERISTIC_ITEMWEIGHTS);
   if ( BotLoadItemWeights(&bs->goalstate, filename) )
     return 0;
   //load the weapon weights
-  filename = Characteristic_String(BotCharacter(bs), 5);
+  filename = Characteristic_String(BotCharacter(bs), CHARACTERISTIC_WEAPONWEIGHTS);
 #if BOTLIB_NEED_SIDEBAND
   /* On 32-bit BotWS(bs) already aliases &bs->weaponweights[0], so no separate
    * allocation happens — exactly as in the original. */
@@ -329,22 +334,22 @@ int __cdecl BotSetupClient(int a1, char *Source)
     return 0;
   }
   //load the chat file
-  filename = Characteristic_String(BotCharacter(bs), 12);
-  name = Characteristic_String(BotCharacter(bs), 13);
+  filename = Characteristic_String(BotCharacter(bs), CHARACTERISTIC_CHAT_FILE);
+  name = Characteristic_String(BotCharacter(bs), CHARACTERISTIC_CHAT_NAME);
   if ( BotLoadChatFile(&bs->chatstate, filename, name) )
   {
     BotFreeItemWeights(&bs->goalstate);
     BotFreeWeaponWeights(BotWS(bs));
     return 0;
   }
-  gender = *(_BYTE *)Characteristic_String(BotCharacter(bs), 3);
+  gender = *(_BYTE *)Characteristic_String(BotCharacter(bs), CHARACTERISTIC_GENDER);
   //set the chat gender
   if ( gender == 'f' || gender == 'F' )
-    bs->chatstate.gender = 1;
+    bs->chatstate.gender = CHAT_GENDERFEMALE;
   else if ( gender == 'm' || gender == 'M' )
-    bs->chatstate.gender = 2;
+    bs->chatstate.gender = CHAT_GENDERMALE;
   else
-    bs->chatstate.gender = 0;
+    bs->chatstate.gender = CHAT_GENDERLESS;
   bs->inuse = 1;
   bs->client = a1;
   bs->entitynum = a1 + 1;
@@ -367,7 +372,7 @@ int __cdecl BotShutdownClient(int a1)
     return BLERR_AICLIENTALREADYSHUTDOWN;
   }
   if ( BotChat_ExitGame(bs) )
-    BotEnterChat(&bs->chatstate, bs->client, 0);
+    BotEnterChat(&bs->chatstate, bs->client, CHAT_ALL);
   BotFreeChatState(&bs->chatstate);
   BotFreeWeaponWeights(BotWS(bs));
 #if BOTLIB_NEED_SIDEBAND
