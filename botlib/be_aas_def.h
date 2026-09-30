@@ -407,7 +407,7 @@ typedef struct aas_entityinfo_s {
     int    modelindex3;    /* +100                                        */
     int    modelindex4;    /* +104                                        */
     int    frame;          /* +108  model frame number                    */
-    int    skinnum;        /* +112  skin number (carried, not set by Update)*/
+    int    skinnum;        /* +112  skin number (the 1999 Update never sets it) */
     int    effects;        /* +116  special effects                       */
     int    renderfx;       /* +120  render fx flags                       */
 } aas_entityinfo_t;        /* sizeof = 124 = 0x7C (same on 32- and 64-bit) */

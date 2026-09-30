@@ -1179,6 +1179,29 @@ void SP_worldspawn (edict_t *ent)
 		gi.modelindex ("#w_railgun.md2");
 		gi.modelindex ("#w_bfg.md2");
 
+		/* The client numbers these models in the order they are registered and
+		 * draws a player's weapon as number weapmodel, 0 being weapon.md2, which is
+		 * the shotgun.  This list is CTF's (grapple 12) followed by Rogue's, but
+		 * g_local.h numbers the weapons Xatrix first (phalanx 12, ionripper 13,
+		 * disruptor 14 .. chainfist 18), and no Xatrix model is registered at all.
+		 * So every mission-pack weapon shows the next one's model, the chainfist
+		 * runs off the end to the shotgun, and so does the grapple, weapmodel 0.
+		 * The fix registers the list in the defines' order and puts the grapple
+		 * last, WEAP_GRAPPLE 19: 19 models plus weapon.md2 are the 20 a 3.20
+		 * client holds.  Present in the original gamex86.dll/gamei386.so, hence
+		 * gated; see .claude/memory/serverfix_deviations.md. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(vwep-model-order) */
+		gi.modelindex ("#w_phalanx.md2");			// XATRIX
+		gi.modelindex ("#w_ripper.md2");			// XATRIX
+		gi.modelindex ("#w_disrupt.md2");			// PGM
+		gi.modelindex ("#w_etfrifle.md2");			// PGM
+		gi.modelindex ("#w_plasma.md2");			// PGM
+		gi.modelindex ("#w_plauncher.md2");			// PGM
+		gi.modelindex ("#w_chainfist.md2");			// PGM
+#ifdef ZOID
+		gi.modelindex( "#w_grapple.md2");
+#endif //ZOID
+#else
 #ifdef ZOID
 		gi.modelindex( "#w_grapple.md2");
 #endif //ZOID
@@ -1187,6 +1210,7 @@ void SP_worldspawn (edict_t *ent)
 		gi.modelindex ("#w_plasma.md2");			// PGM
 		gi.modelindex ("#w_plauncher.md2");			// PGM
 		gi.modelindex ("#w_chainfist.md2");			// PGM
+#endif /* GLAD_SERVERFIX */
 	}
 	//-------------------
 

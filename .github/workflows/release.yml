@@ -373,15 +373,27 @@ jobs:
             stepping into slime. So bots refused every walk and every jump that ended in
             water, and the navigation data got no jump routes that land in water. Water
             is now reported as water, as in Quake III. <!-- fix: movepredict-water-as-slime -->
-          - Bots took an enemy holding the Xatrix phalanx for one holding the CTF
-            grapple, because the phalanx has the view-weapon number that plain CTF gives
-            the grapple. The phalanx no longer counts as the grapple. No bot file that
-            ships with Gladiator reads this, so only custom bot files can notice
-            it. <!-- fix: enemy-phalanx-as-grapple -->
+          - The bot library never learned which weapon an enemy held. Its entity update
+            dropped the field the game sends the weapon in, so every enemy counted as
+            unarmed. It now keeps that field, as Quake III keeps the weapon. No bot file
+            that ships with Gladiator reads an enemy's weapon, so only custom bot files
+            can notice it. <!-- fix: aas-entity-skinnum-dropped -->
+          - Once it knows the weapon, the bot library would take the Xatrix phalanx for
+            the CTF grapple, because it numbers the weapons as plain CTF does, and it
+            would never recognise the real grapple. The phalanx no longer counts as the
+            grapple, and the grapple counts under the number the fixed weapon models
+            below give it. Only custom bot files can notice this
+            either. <!-- fix: enemy-phalanx-as-grapple -->
           - In CTF, a bot holding the Regeneration tech kept it on reaching a Haste tech,
             so it could not pick the Haste up. On reaching another Regeneration it
             dropped its own. It now swaps techs like a bot holding any other
             tech. <!-- fix: ctf-tech4-compares-tech3 -->
+          - Other players held the wrong model for every mission-pack weapon. The
+            phalanx looked like the grapple, the ionripper like the disruptor, and so
+            on down the list, while the chainfist and the CTF grapple looked like the
+            shotgun. The game registered the weapon models in a different order from
+            the weapons' numbers and left out the two Xatrix ones. Every weapon now
+            shows its own model. <!-- fix: vwep-model-order -->
 
           Where Quake III later fixed the same code, the fix is its own correction —
           Mr. Elusive wrote both bot libraries — and where it has no counterpart, the

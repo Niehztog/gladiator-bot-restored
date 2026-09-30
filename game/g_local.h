@@ -412,6 +412,15 @@ typedef struct
 #define WEAP_CHAINFIST			18		// PGM
 #endif //ROGUE
 
+/* CTF's WEAP_GRAPPLE is 12, which the merge above gives the phalanx, so the
+ * 1999 grapple has weapmodel 0 and is drawn as weapon.md2, the shotgun.  It
+ * comes last in SP_worldspawn's list instead; see the comment there. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(vwep-model-order) */
+#ifdef ZOID
+#define WEAP_GRAPPLE				19		// last in SP_worldspawn's list
+#endif //ZOID
+#endif /* GLAD_SERVERFIX */
+
 typedef struct gitem_s
 {
 	char		*classname;	// spawning name

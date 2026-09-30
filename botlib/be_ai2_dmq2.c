@@ -214,9 +214,10 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
    * preceding `cmp edx,0xb`), not interleaved with the zero-writes above.
    * The last slot is inv.h's ENEMY_GRAPPLE, for view weapon 12, CTF's WEAP_GRAPPLE.
    * In Gladiator's merged game the grapple has no view weapon and 12 is Xatrix's
-   * WEAP_PHALANX, so the slot is set for an enemy holding the phalanx.
-   * GLAD_SERVERFIX(enemy-phalanx-as-grapple) drops that case: inv.h has no slot for
-   * the phalanx, and the grapple cannot be seen at all. */
+   * WEAP_PHALANX, so the slot is set for an enemy holding the phalanx and never for
+   * one holding the grapple.  GLAD_SERVERFIX(enemy-phalanx-as-grapple) moves the case
+   * to view weapon 19, which the game gives the grapple under
+   * GLAD_SERVERFIX(vwep-model-order).  inv.h has no slot for the phalanx. */
   switch ( ((entinfo.skinnum >> 8) & 0xFF) - 1 )
   {
     case 0:
@@ -253,6 +254,9 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
       bs->inventory[ENEMY_BFG10K] = 1;
       break;
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(enemy-phalanx-as-grapple) */
+    case 18:
+      bs->inventory[ENEMY_GRAPPLE] = 1;
+      break;
 #else
     case 11:
       bs->inventory[ENEMY_GRAPPLE] = 1;

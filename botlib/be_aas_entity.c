@@ -52,6 +52,15 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
   ent->modelindex3 = state->modelindex3;
   ent->modelindex4 = state->modelindex4;
   ent->frame = state->frame;
+  /* Both originals copy frame, effects and renderfx and skip skinnum, so the
+   * zero-allocated entities[] never learn it.  skinnum's second byte is the weapon a
+   * player holds, and BotUpdateBattleInventory, its only reader, therefore takes
+   * every enemy for unarmed.  Q3 copies that weapon here
+   * (`ent->i.weapon = state->weapon;`).  Present in the original DLL and .so, hence
+   * gated; see .claude/memory/serverfix_deviations.md. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-entity-skinnum-dropped) */
+  ent->skinnum = state->skinnum;
+#endif /* GLAD_SERVERFIX */
   ent->effects = state->effects;
   ent->renderfx = state->renderfx;
   ent->number = entnum;

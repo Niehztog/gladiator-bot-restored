@@ -2760,7 +2760,12 @@ always owned, never in the world
 		0,
 		NULL,
 		IT_WEAPON|IT_CTF,
+		/* weapmodel 0 draws weapon.md2, the shotgun; see SP_worldspawn */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(vwep-model-order) */
+		WEAP_GRAPPLE,
+#else
 		0,
+#endif /* GLAD_SERVERFIX */
 		NULL,
 		0,
 /* precache */ "weapons/grapple/grfire.wav weapons/grapple/grpull.wav weapons/grapple/grhang.wav weapons/grapple/grreset.wav weapons/grapple/grhit.wav models/weapons/grapple/hook/tris.md2"
