@@ -1312,7 +1312,11 @@ void Info_RemoveKey (char *s, char *key)
 
 		if (!strcmp (key, pkey) )
 		{
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(info-removekey-overlap) */
+			memmove(start, s, strlen(s) + 1); // remove this part
+#else
 			strcpy (start, s);	// remove this part
+#endif /* GLAD_SERVERFIX */
 			return;
 		}
 
@@ -1400,8 +1404,9 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 #ifdef BOTLIB
 /* ------------------------------------------------------------------------
  * Gladiator botlib additions.  ADDITIVE ONLY: nothing above this line is
- * touched, so the game build (which never defines BOTLIB) sees exactly the
- * preserved q_shared.c it always has.
+ * touched but the GLAD_SERVERFIX(info-removekey-overlap) arm, whose #else is
+ * the release's line, so the default game build (which never defines BOTLIB)
+ * sees exactly the preserved q_shared.c it always has.
  *
  * These objects live in q_shared.obj in the shipped gladiator.dll -- the DLL's
  * own code proves it: the six floats below are referenced ONLY from within

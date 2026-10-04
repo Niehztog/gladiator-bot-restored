@@ -394,6 +394,12 @@ jobs:
             shotgun. The game registered the weapon models in a different order from
             the weapons' numbers and left out the two Xatrix ones. Every weapon now
             shows its own model. <!-- fix: vwep-model-order -->
+          - Changing a setting in a player's userinfo, such as a bot's name or skin or
+            a CTF team skin, moved the rest of the string with a copy whose source and
+            destination overlap, which C leaves undefined. Some C libraries, current
+            64-bit ARM Linux among them, garble the string when the old value is short,
+            such as a bot name of up to eight characters. The copy now allows the
+            overlap, as in ioquake3. <!-- fix: info-removekey-overlap -->
 
           Where Quake III later fixed the same code, the fix is its own correction —
           Mr. Elusive wrote both bot libraries — and where it has no counterpart, the

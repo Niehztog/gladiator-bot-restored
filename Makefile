@@ -416,7 +416,8 @@ build/%.o: game/%.c
 # (id386 Q_ftol, BoxOnPlaneSide fast path) compile out on gcc/MinGW.
 #
 # botlib/q_shared.c is our OWN duplicate of game/q_shared.c (which remains
-# the untouched, verbatim copy used by the game.dll/game.so build below).
+# the verbatim copy used by the game.dll/game.so build below, but for one
+# GLAD_SERVERFIX arm whose #else is the release's line).
 # The two targets' object code needs byte-identical output on completely
 # different original binaries (gladiator.dll vs game.dll) built from what
 # was, in 1999, presumably still one physical q_shared.c -- but the ELF
