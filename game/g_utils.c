@@ -586,12 +586,13 @@ void G_FreeEdict (edict_t *ed)
 	 * Unfaithful to the 1999 binary -- present in the ORIGINAL game.dll and in
 	 * Yamagi too, so it is a real 1999 defect rather than a reconstruction one.
 	 * It was this project's one ad-hoc sanctioned deviation; it is now gated
-	 * like every other one. */
+	 * like every other one.  The grapple is the edict its owner points at:
+	 * CTFFireGrapple keeps G_Spawn's "noclass", so the classname test this
+	 * guard carried until 2026-10-05 never matched and the guard never ran. */
 #ifdef ZOID
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(ctf-grapple-stale-pointer) */
 	if (ctf->value
-	    && ed && ed->classname && strcmp(ed->classname, "grapple") == 0
-	    && ed->owner && ed->owner->client
+	    && ed && ed->owner && ed->owner->client
 	    && ed->owner->client->ctf_grapple == ed)
 	{
 		ed->owner->client->ctf_grapple = NULL;
